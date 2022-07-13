@@ -12,17 +12,18 @@ arp_table_entry arp_table[ARP_TABLE_SIZE];
 void add_arp_table_entry(net_device *device, uint8_t* mac_address, uint32_t ip_address) {
 
     if (ip_address == 0) {
-        printf("Unable to create arp table to 0.0.0.0");
+        return;
     }
 
     uint16_t index = ip_address % ARP_TABLE_SIZE;
 
     arp_table_entry* candidate = &arp_table[index];
 
-    if(candidate->ip_address == 0){ // 想定のHash値に入れられるとき
+    if(candidate->ip_address == 0 or candidate->ip_address == ip_address){ // 想定のHash値に入れられるとき
         memcpy(candidate->mac_address, mac_address, 6);
         candidate->ip_address = ip_address;
         candidate->device = device;
+        return;
     }
 
     // だめだったときは、candidateに連結する
@@ -33,6 +34,7 @@ void add_arp_table_entry(net_device *device, uint8_t* mac_address, uint32_t ip_a
             memcpy(candidate->mac_address, mac_address, 6);
             candidate->ip_address = ip_address;
             candidate->device = device;
+            return;
         }
     }
 
@@ -75,7 +77,7 @@ void dump_arp_table_entry() {
 
         for (arp_table_entry *a = &arp_table[i]; a; a = a->next) {
 
-            printf("%s to %s dev %s index %04d", inet_htoa(a->ip_address),
+            printf("%s to %s dev %s index %04d\n", inet_htoa(a->ip_address),
                    mac_addr_toa(a->mac_address), a->device->ifname, i);
         }
     }

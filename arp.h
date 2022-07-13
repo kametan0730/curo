@@ -11,7 +11,7 @@
 #define ARP_OPERATION_CODE_REQUEST  0x0001
 #define ARP_OPERATION_CODE_REPLY    0x0002
 
-#define ARP_TABLE_SIZE 5555
+#define ARP_TABLE_SIZE 1
 
 struct net_device;
 
