@@ -47,7 +47,10 @@ enum ip_route_type{
 
 struct ip_route_entry{
     ip_route_type type;
-    uint32_t next_hop;
+    union{
+        uint32_t if_index;
+        uint32_t next_hop;
+    };
 };
 
 template<typename DATA_TYPE>

@@ -16,4 +16,7 @@
 
 #define ENABLE_INTERFACES {"router-to-host0", "router-to-host1"}
 
+
+void configure();
+
 #endif //RAW_SOCKET_CONFIG_H

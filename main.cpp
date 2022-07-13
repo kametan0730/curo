@@ -121,29 +121,9 @@ int main() {
         return 0;
     }
 
-    for (net_device *a = net_dev; a; a = a->next) {
-        if (strcmp(a->ifname, "router-to-host0") == 0) {
-            printf("Set ip address to %s\n", a->ifname);
-            a->ip_dev = (ip_device *) calloc(1, sizeof(ip_device));
-            a->ip_dev->address = IP_ADDRESS_FROM_HOST(192, 168, 111, 1);
-            a->ip_dev->netmask = IP_ADDRESS_FROM_HOST(255, 255, 255, 0);
-        } else if (strcmp(a->ifname, "router-to-host1") == 0) {
-            printf("Set ip address to %s\n", a->ifname);
-            a->ip_dev = (ip_device *) calloc(1, sizeof(ip_device));
-            a->ip_dev->address = IP_ADDRESS_FROM_HOST(192, 168, 222, 1);
-            a->ip_dev->netmask = IP_ADDRESS_FROM_HOST(255, 255, 255, 0);
-        }
-    }
-
     ip_fib = (binary_trie_node<ip_route_entry> *) calloc(1, sizeof(binary_trie_node<ip_route_entry>));
 
-    ip_route_entry *ire1 = (ip_route_entry *) calloc(1, sizeof(ip_route_entry));
-    ire1->type = host;
-    add(ip_fib, IP_ADDRESS_FROM_HOST(192, 168, 222, 0), 24, ire1);
-
-    ip_route_entry *ire2 = (ip_route_entry *) calloc(1, sizeof(ip_route_entry));
-    ire2->type = host;
-    add(ip_fib, IP_ADDRESS_FROM_HOST(192, 168, 111, 0), 24, ire2);
+    configure();
 
     ssize_t n;
     unsigned char buf[1550];

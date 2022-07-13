@@ -9,6 +9,7 @@
 #include "ethernet.h"
 #include "ip.h"
 #include "my_buf.h"
+#include "config.h"
 
 #define ICMP_TYPE_ECHO_REPLY 0
 #define ICMP_TYPE_DESTINATION_UNREACHABLE 3
@@ -22,11 +23,14 @@ void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len)
 
     switch(header->type){
         case ICMP_TYPE_ECHO_REPLY:
+#ifdef DEBUG_ICMP
             printf("Received icmp echo reply\n");
+#endif
             break;
         case ICMP_TYPE_ECHO_REQUEST:{
+#ifdef DEBUG_ICMP
             printf("Received icmp echo request\n");
-
+#endif
             auto* request = reinterpret_cast<icmp_echo*>(buffer);
 
             my_buf* reply_my_buf = my_buf::create(len);
@@ -44,7 +48,9 @@ void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len)
         }
             break;
         default:
+#ifdef DEBUG_ICMP
             printf("Received unhandled icmp type %d\n", header->type);
+#endif
             break;
     }
 }
