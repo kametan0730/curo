@@ -15,7 +15,7 @@ struct binary_trie_node{
 };
 
 template<typename DATA_TYPE>
-void add(binary_trie_node<DATA_TYPE>* root, uint32_t prefix, uint32_t prefix_len, DATA_TYPE* data){
+void binary_trie_add(binary_trie_node<DATA_TYPE>* root, uint32_t prefix, uint32_t prefix_len, DATA_TYPE* data){
 
     binary_trie_node<DATA_TYPE>* current = root;
 
@@ -39,7 +39,7 @@ void add(binary_trie_node<DATA_TYPE>* root, uint32_t prefix, uint32_t prefix_len
 }
 
 template<typename DATA_TYPE>
-DATA_TYPE* search(binary_trie_node<DATA_TYPE>* root, uint32_t prefix){
+DATA_TYPE* binary_trie_search(binary_trie_node<DATA_TYPE>* root, uint32_t prefix){
 
     binary_trie_node<DATA_TYPE>* current = root;
 

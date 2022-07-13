@@ -43,8 +43,7 @@ int main() {
 
     struct ifreq ifr{};
     struct ifaddrs *addrs;
-    bool enable = false;
-
+    bool enable;
     getifaddrs(&addrs);
 
     char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
@@ -54,6 +53,7 @@ int main() {
         if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET) {
 
             enable = false;
+
             memset(&ifr, 0, sizeof(ifr));
 
             strcpy(ifr.ifr_name, tmp->ifa_name);
@@ -110,7 +110,6 @@ int main() {
 
             int val = fcntl(dev->fd, F_GETFL, 0);
             fcntl(dev->fd, F_SETFL, val | O_NONBLOCK); // ノンブロック
-
         }
     }
 
@@ -127,7 +126,7 @@ int main() {
 
     ssize_t n;
     unsigned char buf[1550];
-    while (1) {
+    while (true) {
 
         for (net_device *a = net_dev; a; a = a->next) {
             /* ソケットからデータ受信 */
@@ -141,7 +140,7 @@ int main() {
                     return -1;
                 }
             }
-            printf("Recevied %zd bytes from %s\n", n, a->ifname);
+            printf("Received %zd bytes from %s\n", n, a->ifname);
 
             NET_INPUT(a, buf, n);
 

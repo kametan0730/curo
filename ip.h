@@ -45,10 +45,12 @@ enum ip_route_type{
     host, network
 };
 
+struct net_device;
+
 struct ip_route_entry{
     ip_route_type type;
     union{
-        uint32_t if_index;
+        net_device* device;
         uint32_t next_hop;
     };
 };
@@ -63,6 +65,9 @@ struct net_device;
 void ip_input(net_device *dev, uint8_t *buffer, ssize_t len);
 
 struct my_buf;
+
+void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer);
+void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer);
 void ip_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint16_t protocol_type);
 
 #endif //RAW_SOCKET_IP_H

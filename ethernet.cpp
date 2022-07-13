@@ -21,7 +21,7 @@ void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
         return;
     }
 
-#ifdef DEBUG_IP
+#if DEBUG_IP > 0
     printf("Received ethernet frame type %04x from %s to %s\n",
            ethernet_type, mac_addr_toa(header->src_address),
            mac_addr_toa(header->dest_address));
@@ -39,7 +39,7 @@ void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
                     buffer + ETHERNET_HEADER_SIZE,
                     len - ETHERNET_HEADER_SIZE);
         default:
-#ifdef DEBUG_IP
+#if DEBUG_IP > 0
             printf("Received unhandled ethernet type %04x\n", ethernet_type);
 #endif
             return;
@@ -58,31 +58,30 @@ void ethernet_output_broadcast(net_device* device, my_buf* buffer, uint16_t prot
 
     buffer->add_header(new_buffer);
 
-    net_device_send_my_buf(device, buffer);
+    net_device_send_my_buf(device, new_buffer);
 }
 
-void ethernet_output(net_device* device, uint8_t destination_mac_address[], my_buf* buffer, uint16_t protocol_type){
-
+void ethernet_output(net_device* device, uint8_t* dest_mac_addr, my_buf* buffer, uint16_t protocol_type){
+#if DEBUG_IP > 0
     printf("Sent ethernet frame type %04x from %s to %s\n",
            protocol_type, mac_addr_toa(device->mac_address),
-           mac_addr_toa(destination_mac_address));
-
+           mac_addr_toa(dest_mac_addr));
+#endif
     my_buf* ethernet_header_my_buf = my_buf::create(ETHERNET_HEADER_SIZE);
     auto* ether_header = reinterpret_cast<ethernet_header*>(ethernet_header_my_buf->buffer);
 
     memcpy(ether_header->src_address, device->mac_address, 6);
-    memcpy(ether_header->dest_address, destination_mac_address, 6);
+    memcpy(ether_header->dest_address, dest_mac_addr, 6);
     ether_header->type = htons(protocol_type);
 
     buffer->add_header(ethernet_header_my_buf);
 
-#ifdef DEBUG_IP
 #if DEBUG_IP > 1
     for (int i = 0; i < ethernet_header_my_buf->len; ++i) {
         printf("%02x", ethernet_header_my_buf->buffer[i]);
     }
 #endif
-#endif
+
     printf("\n");
 
     net_device_send_my_buf(device, ethernet_header_my_buf);

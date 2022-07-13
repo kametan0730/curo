@@ -87,23 +87,65 @@ void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
             }
         }
     }
+
+
+    ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->destination_address));
+    if(route == nullptr){
+        printf("No route to %s\n", inet_htoa(ntohl(ip_packet->destination_address)));
+        return;
+    }
+
+    my_buf* ip_forward_buf = my_buf::create(0);
+    ip_forward_buf->buf_ptr = buffer;
+    ip_forward_buf->len = len;
+
+
+    if(route->type == host){
+        ip_output_to_host(route->device, ntohl(ip_packet->destination_address), ip_forward_buf);
+        return;
+    }
+
+    if(route->type == network){
+        ip_output_to_next_hop(route->next_hop, ip_forward_buf);
+        return;
+    }
 }
 
-void ip_output_to_host(uint32_t dest_address, my_buf* buffer){
+void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer){
     arp_table_entry* entry = search_arp_table_entry(dest_address);
 
     if(!entry) {
+        printf("Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_address));
 
+        issue_arp_request(dev, dest_address);
+    }else{
+        ethernet_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP);
+    }
+}
 
+void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
+    arp_table_entry* entry = search_arp_table_entry(next_hop);
+
+    if(!entry) {
+        printf("Trying ip output to next hop, but no arp record to %s\n", inet_htoa(next_hop));
+
+        ip_route_entry* route_to_next_hop = binary_trie_search(ip_fib, next_hop);
+
+        if(route_to_next_hop == nullptr or route_to_next_hop->type != host) {
+            printf("Next hop %s is not reachable\n", inet_htoa(next_hop));
+        }else{
+            issue_arp_request(route_to_next_hop->device, next_hop);
+        }
 
     }else{
         ethernet_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP);
     }
 }
 
-
 void ip_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint16_t protocol_type){
 
+
+    dump_arp_table_entry();
     uint16_t total_len = 0;
 
     my_buf* current_buffer = buffer;
@@ -135,22 +177,20 @@ void ip_output(uint32_t destination_address, uint32_t source_address, my_buf* bu
     ip_buf->source_address = htonl(source_address);
     ip_buf->header_checksum = calc_checksum_16_my_buf(buf);
 
-    ip_route_entry* route = search(ip_fib, destination_address);
+    ip_route_entry* route = binary_trie_search(ip_fib, destination_address);
     if(route == nullptr){
         printf("No route to %s\n", inet_htoa(destination_address));
         return;
     }
 
     if(route->type == host){
-        printf("host route to %s\n", inet_htoa(destination_address));
-        ip_output_to_host(destination_address, buf);
+        ip_output_to_host(route->device, destination_address, buf);
         return;
     }
 
     if(route->type == network){
+        ip_output_to_next_hop(route->next_hop, buf);
         return;
     }
-
-    return;
 
 }
