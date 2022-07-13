@@ -24,7 +24,7 @@ struct arp_table_entry{
     arp_table_entry* next;
 };
 
-bool add_arp_table_entry(net_device* device, uint8_t mac_address[], uint32_t ip_address);
+void add_arp_table_entry(net_device* device, uint8_t* mac_address, uint32_t ip_address);
 
 arp_table_entry* search_arp_table_entry(uint32_t ip_address);
 
@@ -43,8 +43,6 @@ struct arp_ip_to_ethernet{
     uint8_t tha[6];
     uint32_t tpa;
 } __attribute__((packed));
-
-
 
 void arp_input(net_device *source_interface,  uint8_t* buffer, ssize_t len);
 #endif //RAW_SOCKET_ARP_H

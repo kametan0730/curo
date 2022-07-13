@@ -9,46 +9,59 @@
 
 arp_table_entry arp_table[ARP_TABLE_SIZE];
 
-bool add_arp_table_entry(net_device *device, uint8_t mac_address[], uint32_t ip_address) {
+void add_arp_table_entry(net_device *device, uint8_t* mac_address, uint32_t ip_address) {
 
     if (ip_address == 0) {
         printf("Unable to create arp table to 0.0.0.0");
     }
 
-    if (search_arp_table_entry(ip_address)) {
-        return true;
+    uint16_t index = ip_address % ARP_TABLE_SIZE;
+
+    arp_table_entry* candidate = &arp_table[index];
+
+    if(candidate->ip_address == 0){ // 想定のHash値に入れられるとき
+        memcpy(candidate->mac_address, mac_address, 6);
+        candidate->ip_address = ip_address;
+        candidate->device = device;
     }
 
-    uint16_t candidate_index = ip_address % ARP_TABLE_SIZE;
-    uint16_t read_index = candidate_index;
+    // だめだったときは、candidateに連結する
 
-    while (arp_table[read_index % ARP_TABLE_SIZE].ip_address != 0) {
-        read_index++;
-        if (read_index - candidate_index >= 10) {
-
-            return false;
+    while(candidate->next != nullptr){
+        candidate = candidate->next;
+        if(candidate->ip_address == ip_address){
+            memcpy(candidate->mac_address, mac_address, 6);
+            candidate->ip_address = ip_address;
+            candidate->device = device;
         }
     }
 
-    read_index %= ARP_TABLE_SIZE;
-    memcpy(arp_table[read_index].mac_address, mac_address, 6);
-    arp_table[read_index].ip_address = ip_address;
-    arp_table[read_index].device = device;
+    arp_table_entry* creation = (arp_table_entry*) calloc(1, sizeof(arp_table_entry));
+    memcpy(creation->mac_address, mac_address, 6);
+    creation->ip_address = ip_address;
+    creation->device = device;
 
-    return true;
+    candidate->next = creation;
 }
 
 
 arp_table_entry *search_arp_table_entry(uint32_t ip_address) {
     uint16_t index = ip_address % ARP_TABLE_SIZE;
-    if (arp_table[index].ip_address == 0) {
+    arp_table_entry* candidate = &arp_table[index];
+
+    if (candidate->ip_address == ip_address) {
+        return candidate;
+    }else if(candidate->ip_address == 0){
         return nullptr;
     }
-    for (int i = 0; i < 10; ++i) {
-        if (ip_address == arp_table[(index + i) % ARP_TABLE_SIZE].ip_address) {
-            return &arp_table[(index + i) % ARP_TABLE_SIZE];
+
+    while(candidate->next != nullptr){
+        candidate = candidate->next;
+        if(candidate->ip_address == ip_address){
+            return candidate;
         }
     }
+
     return nullptr; // Oops
 }
 
@@ -60,8 +73,11 @@ void dump_arp_table_entry() {
             continue;
         }
 
-        printf("%s to %s dev %s index %04d", inet_htoa(arp_table[i].ip_address),
-               mac_addr_toa(arp_table[i].mac_address), arp_table[i].device->ifname, i);
+        for (arp_table_entry *a = &arp_table[i]; a; a = a->next) {
+
+            printf("%s to %s dev %s index %04d", inet_htoa(a->ip_address),
+                   mac_addr_toa(a->mac_address), a->device->ifname, i);
+        }
     }
 }
 
