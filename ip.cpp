@@ -15,7 +15,7 @@ void ip_input_to_ours(net_device *source_device, ip_header *ip_packet, size_t le
     if ((ntohs(ip_packet->frags_and_offset) & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET) != 0 or
         (ntohs(ip_packet->frags_and_offset) &
          IP_FRAG_AND_OFFSET_FIELD_MASK_MORE_FRAGMENT_FLAG)) {
-        printf("IP fragment is not supported (offset:%d, more_fragment:%d)",
+        printf("[IP] IP fragment is not supported (offset:%d, more_fragment:%d)",
                ip_packet->frags_and_offset & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET,
                ip_packet->frags_and_offset & IP_FRAG_AND_OFFSET_FIELD_MASK_MORE_FRAGMENT_FLAG
         );
@@ -31,7 +31,7 @@ void ip_input_to_ours(net_device *source_device, ip_header *ip_packet, size_t le
                               ((uint8_t *) ip_packet) + IP_HEADER_SIZE, len - IP_HEADER_SIZE);
 
         default:
-            printf("Unhandled ours ip packet from %s to %s protocol %d",
+            printf("[IP] Unhandled ours ip packet from %s to %s protocol %d",
                    inet_ntoa(ip_packet->source_address),
                    inet_ntoa(ip_packet->destination_address),
                    ip_packet->protocol);
@@ -43,27 +43,26 @@ void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
     bool has_header_option = false;
 
     if(source_device->ip_dev == nullptr){
-        printf("Illegal ip interface\n");
+        printf("[IP] Illegal ip interface\n");
         return;
     }
 
     if (source_device->ip_dev->address == IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)) {
-        printf("Illegal ip interface\n");
+        printf("[IP] Illegal ip interface\n");
         return;
-
     }
 
     if (len < sizeof(ip_header) + 8) {
-        printf("Illegal ip packet length\n");
+        printf("[IP] Illegal ip packet length\n");
         return;
     }
 
     auto *ip_packet = reinterpret_cast<ip_header *>(buffer);
-    printf("Received IPv4 type %d from %s to %s\n", ip_packet->protocol, inet_ntoa(ip_packet->source_address),
+    printf("[IP] Received IPv4 type %d from %s to %s\n", ip_packet->protocol, inet_ntoa(ip_packet->source_address),
            inet_ntoa(ip_packet->destination_address));
 
     if (ip_packet->version != 4) {
-        printf("Unknown ip version\n");
+        printf("[IP] Unknown ip version\n");
         return;
     }
 
@@ -74,7 +73,7 @@ void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
     }
 
     if (ip_packet->destination_address == IP_ADDRESS_FROM_HOST(255, 255, 255, 255)) {
-        printf("Broadcast ip packet received\n");
+        printf("[IP] Broadcast ip packet received\n");
         return ip_input_to_ours(source_device, ip_packet, len);
     }
 
@@ -88,10 +87,9 @@ void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
         }
     }
 
-
     ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->destination_address));
     if(route == nullptr){
-        printf("No route to %s\n", inet_htoa(ntohl(ip_packet->destination_address)));
+        printf("[IP] No route to %s\n", inet_htoa(ntohl(ip_packet->destination_address)));
         return;
     }
 
@@ -115,7 +113,7 @@ void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer){
     arp_table_entry* entry = search_arp_table_entry(dest_address);
 
     if(!entry) {
-        printf("Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_address));
+        printf("[IP] Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_address));
 
         issue_arp_request(dev, dest_address);
     }else{
@@ -127,12 +125,12 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
     arp_table_entry* entry = search_arp_table_entry(next_hop);
 
     if(!entry) {
-        printf("Trying ip output to next hop, but no arp record to %s\n", inet_htoa(next_hop));
+        printf("[IP] Trying ip output to next hop, but no arp record to %s\n", inet_htoa(next_hop));
 
         ip_route_entry* route_to_next_hop = binary_trie_search(ip_fib, next_hop);
 
         if(route_to_next_hop == nullptr or route_to_next_hop->type != host) {
-            printf("Next hop %s is not reachable\n", inet_htoa(next_hop));
+            printf("[IP] Next hop %s is not reachable\n", inet_htoa(next_hop));
         }else{
             issue_arp_request(route_to_next_hop->device, next_hop);
         }
@@ -142,10 +140,7 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
     }
 }
 
-void ip_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint16_t protocol_type){
-
-
-    dump_arp_table_entry();
+void ip_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint8_t protocol_type){
     uint16_t total_len = 0;
 
     my_buf* current_buffer = buffer;
@@ -155,9 +150,7 @@ void ip_output(uint32_t destination_address, uint32_t source_address, my_buf* bu
         current_buffer = current_buffer->next_my_buf;
     }
 
-
     my_buf* buf = my_buf::create(IP_HEADER_SIZE);
-
     buffer->add_header(buf); // 連結
 
     auto* ip_buf = reinterpret_cast<ip_header*>(buf->buffer);
@@ -179,7 +172,7 @@ void ip_output(uint32_t destination_address, uint32_t source_address, my_buf* bu
 
     ip_route_entry* route = binary_trie_search(ip_fib, destination_address);
     if(route == nullptr){
-        printf("No route to %s\n", inet_htoa(destination_address));
+        printf("[IP] No route to %s\n", inet_htoa(destination_address));
         return;
     }
 

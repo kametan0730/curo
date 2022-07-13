@@ -22,7 +22,7 @@ void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
     }
 
 #if DEBUG_IP > 0
-    printf("Received ethernet frame type %04x from %s to %s\n",
+    printf("[ETHER] Received ethernet frame type %04x from %s to %s\n",
            ethernet_type, mac_addr_toa(header->src_address),
            mac_addr_toa(header->dest_address));
 #endif
@@ -40,7 +40,7 @@ void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
                     len - ETHERNET_HEADER_SIZE);
         default:
 #if DEBUG_IP > 0
-            printf("Received unhandled ethernet type %04x\n", ethernet_type);
+            printf("[ETHER] Received unhandled ethernet type %04x\n", ethernet_type);
 #endif
             return;
     }
@@ -63,7 +63,7 @@ void ethernet_output_broadcast(net_device* device, my_buf* buffer, uint16_t prot
 
 void ethernet_output(net_device* device, uint8_t* dest_mac_addr, my_buf* buffer, uint16_t protocol_type){
 #if DEBUG_IP > 0
-    printf("Sent ethernet frame type %04x from %s to %s\n",
+    printf("[ETHER] Sent ethernet frame type %04x from %s to %s\n",
            protocol_type, mac_addr_toa(device->mac_address),
            mac_addr_toa(dest_mac_addr));
 #endif
@@ -77,12 +77,13 @@ void ethernet_output(net_device* device, uint8_t* dest_mac_addr, my_buf* buffer,
     buffer->add_header(ethernet_header_my_buf);
 
 #if DEBUG_IP > 1
+    printf("[ETHER] ");
     for (int i = 0; i < ethernet_header_my_buf->len; ++i) {
         printf("%02x", ethernet_header_my_buf->buffer[i]);
     }
+    printf("\n");
 #endif
 
-    printf("\n");
 
     net_device_send_my_buf(device, ethernet_header_my_buf);
 }

@@ -37,6 +37,7 @@ void net_device_send_my_buf(net_device* device, my_buf* buf){
         current_buffer = current_buffer->next_my_buf;
     }
 
+    /*
     printf("Send %d bytes\n", total_len);
 
     for (int i = 0; i < total_len; ++i) {
@@ -44,6 +45,7 @@ void net_device_send_my_buf(net_device* device, my_buf* buf){
     }
 
     printf("\n");
+    */
 
     send(device->fd, real_buffer, total_len, 0);
 

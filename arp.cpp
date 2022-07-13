@@ -76,16 +76,17 @@ void dump_arp_table_entry() {
         }
 
         for (arp_table_entry *a = &arp_table[i]; a; a = a->next) {
-
-            printf("%s to %s dev %s index %04d\n", inet_htoa(a->ip_address),
-                   mac_addr_toa(a->mac_address), a->device->ifname, i);
+            printf("[ARP] %s to %s dev %s index %04d\n",
+                   inet_htoa(a->ip_address),
+                   mac_addr_toa(a->mac_address),
+                   a->device->ifname, i);
         }
     }
 }
 
 void issue_arp_request(net_device *device, uint32_t search_ip) {
 
-    printf("Send arp request via %s", device->ifname);
+    printf("[ARP] Send arp request via %s\n", device->ifname);
     auto *new_buf = my_buf::create(46);
 
     auto *arp = reinterpret_cast<arp_ip_to_ethernet *>(new_buf->buffer);
@@ -105,7 +106,7 @@ void issue_arp_request(net_device *device, uint32_t search_ip) {
 
 void arp_request_arrives(net_device *source_interface, arp_ip_to_ethernet *packet) {
 
-    printf("Received arp request packet\n");
+    printf("[ARP] Received arp request packet\n");
 
     /**
      * リクエストからもARPレコードを生成する
@@ -116,7 +117,7 @@ void arp_request_arrives(net_device *source_interface, arp_ip_to_ethernet *packe
 
         if (a->ip_dev != nullptr and a->ip_dev->address != IP_ADDRESS_FROM_HOST(0, 0, 0, 0)) {
             if (a->ip_dev->address == ntohl(packet->tpa)) {
-                printf("ARP matched with %s\n", inet_ntoa(packet->tpa));
+                printf("[ARP] ARP matched with %s\n", inet_ntoa(packet->tpa));
                 auto *res = my_buf::create(46);
 
                 auto res_arp = reinterpret_cast<arp_ip_to_ethernet *>(res->buffer);
@@ -138,10 +139,8 @@ void arp_request_arrives(net_device *source_interface, arp_ip_to_ethernet *packe
 }
 
 void arp_reply_arrives(net_device *source_interface, arp_ip_to_ethernet *packet) {
-    printf("Received arp reply packet");
+    printf("[ARP] Received arp reply packet %s => %s\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));
     add_arp_table_entry(source_interface, packet->sha, ntohl(packet->spa));
-
-
 }
 
 void arp_input(net_device *source_interface, uint8_t *buffer, ssize_t len) {
@@ -153,17 +152,17 @@ void arp_input(net_device *source_interface, uint8_t *buffer, ssize_t len) {
         case ETHERNET_PROTOCOL_TYPE_IP: {
 
             if (sizeof(arp_ip_to_ethernet) > len) {
-                printf("Illegal arp packet length");
+                printf("[ARP] Illegal arp packet length");
                 return;
             }
 
             if (packet->hlen != 6) {
-                printf("Illegal hardware address length");
+                printf("[ARP] Illegal hardware address length");
                 return;
             }
 
             if (packet->plen != 4) {
-                printf("Illegal protocol address");
+                printf("[ARP] Illegal protocol address");
                 return;
             }
 
@@ -172,7 +171,6 @@ void arp_input(net_device *source_interface, uint8_t *buffer, ssize_t len) {
 
             } else if (oper == ARP_OPERATION_CODE_REPLY) {
                 arp_reply_arrives(source_interface, packet);
-
             }
         }
             break;
