@@ -47,7 +47,7 @@ void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len)
             memcpy(&reply->data, &request->data, len - 8);
             //reply->header.checksum = calc_checksum_16_my_buf(reply_my_buf);
 
-            ip_output(source, destination, reply_my_buf, IP_PROTOCOL_TYPE_ICMP);
+            ip_encapsulate_output(source, destination, reply_my_buf, IP_PROTOCOL_TYPE_ICMP);
         }
             break;
         default:
@@ -57,3 +57,23 @@ void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len)
             break;
     }
 }
+
+void issue_icmp_time_exceeded(uint32_t source, uint32_t destination, uint8_t code, void* data){
+
+    my_buf* buffer = my_buf::create(sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
+
+    auto* icmp_message = reinterpret_cast<icmp_time_exceeded*>(buffer->buffer);
+
+    icmp_message->header.type = ICMP_TYPE_TIME_EXCEEDED;
+    icmp_message->header.code = code;
+    icmp_message->header.checksum = 0;
+    icmp_message->unused = 0;
+
+    memcpy(icmp_message->data, data, sizeof(ip_header) + 8);
+
+    icmp_message->header.checksum = calc_checksum_16_my_buf(buffer);
+
+    ip_encapsulate_output(destination, source, buffer, IP_PROTOCOL_TYPE_ICMP);
+
+}
+

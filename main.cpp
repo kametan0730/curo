@@ -39,11 +39,16 @@ void dump_frame(unsigned char *buf, size_t len) {
 
 }
 
+void net_device_output(net_device* dev, uint8_t* buf){
+
+}
+
 int main() {
 
     struct ifreq ifr{};
     struct ifaddrs *addrs;
     bool enable;
+
     getifaddrs(&addrs);
 
     char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;

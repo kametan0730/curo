@@ -16,6 +16,14 @@ struct icmp_echo{
     uint8_t data[];
 } __attribute__((packed));
 
+#define ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED 0
+#define ICMP_TIME_EXCEEDED_CODE_FRAGMENT_REASSEMBLY_TIME_EXCEEDED 1
+
+struct icmp_time_exceeded{
+    icmp_header header;
+    uint32_t unused;
+    uint8_t data[];
+} __attribute__((packed));
 
 void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len);
 

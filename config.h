@@ -11,11 +11,10 @@
 
 #define DEBUG_ETHERNET  1
 #define DEBUG_IP        1
-#define DEBUG_ICP       1
+#define DEBUG_ARP       1
 #define DEBUG_ICMP      1
 
 #define ENABLE_INTERFACES {"router-to-host0", "router-to-host1"}
-
 
 void configure();
 

@@ -68,6 +68,7 @@ struct my_buf;
 
 void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer);
 void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer);
-void ip_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint8_t protocol_type);
+void ip_output(uint32_t dest, my_buf* buffer);
+void ip_encapsulate_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint8_t protocol_type);
 
 #endif //RAW_SOCKET_IP_H
