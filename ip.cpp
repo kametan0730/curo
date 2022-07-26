@@ -65,6 +65,21 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                             }
 
                             napt_packet->udp.checksum = exs_sum;
+                        }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
+                            uint32_t exs_sum = napt_packet->tcp.checksum;
+                            exs_sum = ~exs_sum;
+                            exs_sum -= ip_packet->destination_address & 0xffff;
+                            exs_sum -= ip_packet->destination_address >> 16;
+                            exs_sum -= napt_packet->dest_port;
+                            exs_sum += htonl(entry->local_address) & 0xffff;
+                            exs_sum += htonl(entry->local_address) >> 16;
+                            exs_sum += htons(entry->local_port);
+                            exs_sum = ~exs_sum;
+                            if(exs_sum > 0xffff){
+                                exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
+                            }
+
+                            napt_packet->tcp.checksum = exs_sum;
                         }
 
                         ip_packet->destination_address = htonl(entry->local_address);
@@ -208,14 +223,36 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
 
                 exs_sum = ~exs_sum;
 
-               printf("C: %x\n", exs_sum);
+                printf("C: %x\n", exs_sum);
 
 
-               if(exs_sum > 0xffff){
-                   exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
-               }
+                if(exs_sum > 0xffff){
+                    exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
+                }
 
                 napt_packet->udp.checksum = exs_sum;
+            }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
+
+                uint32_t exs_sum = napt_packet->tcp.checksum;
+                exs_sum = ~exs_sum;
+                exs_sum -= ip_packet->source_address & 0xffff;
+                exs_sum -= ip_packet->source_address >> 16;
+                exs_sum -= napt_packet->src_port;
+                exs_sum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) & 0xffff;
+                exs_sum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) >> 16;
+                exs_sum += htons(e->global_port);
+
+                exs_sum = ~exs_sum;
+
+                printf("C: %x\n", exs_sum);
+
+
+                if(exs_sum > 0xffff){
+                    exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
+                }
+
+                napt_packet->tcp.checksum = exs_sum;
+
             }
 
             ip_packet->source_address = htonl(source_device->ip_dev->napt_inside_dev->outside_address);
@@ -263,31 +300,6 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
 }
 
 void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer){
-
-    /*
-    if(dev->ip_dev->napt_inside_dev != nullptr){
-        ip_header* ip_packet;
-        if(buffer->buf_ptr != nullptr) {
-            ip_packet = (ip_header*) buffer->buf_ptr;
-        }else{
-            ip_packet =  (ip_header*) buffer->buffer;
-
-        }
-        printf("AAAA\n");
-
-        if(ntohs(ip_packet->protocol) == IP_PROTOCOL_TYPE_UDP or ntohs(ip_packet->protocol) == IP_PROTOCOL_TYPE_TCP){
-
-
-            napt_packet_head *napt_packet = (napt_packet_head *) ((uint8_t *) ip_packet + sizeof(ip_header));
-
-            if(in_subnet(IP_ADDRESS_FROM_HOST(192, 168, 222, 0), 24, ntohl(ip_packet->destination_address))){
-
-            }
-
-            printf("Input ip packet from inside of nat\n");
-        }
-    }
-    */
 
     arp_table_entry* entry = search_arp_table_entry(dest_address);
 
