@@ -14,7 +14,11 @@
 #define DEBUG_ARP       1
 #define DEBUG_ICMP      1
 
-#define ENABLE_INTERFACES {"router-to-host0", "router-to-host1"}
+
+#define LINK_TO_HOST0 "router-to-host0"
+#define LINK_TO_HOST1 "router-to-br0"
+
+#define ENABLE_INTERFACES {LINK_TO_HOST0, LINK_TO_HOST1}
 
 void configure();
 

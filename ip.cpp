@@ -12,11 +12,11 @@
 
 binary_trie_node<ip_route_entry>* ip_fib;
 
-void ip_input_to_ours(net_device *source_device, ip_header *ip_packet, size_t len) {
+void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t len){
 
-    if ((ntohs(ip_packet->frags_and_offset) & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET) != 0 or
-        (ntohs(ip_packet->frags_and_offset) &
-         IP_FRAG_AND_OFFSET_FIELD_MASK_MORE_FRAGMENT_FLAG)) {
+    if((ntohs(ip_packet->frags_and_offset) & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET) != 0 or
+       (ntohs(ip_packet->frags_and_offset) &
+        IP_FRAG_AND_OFFSET_FIELD_MASK_MORE_FRAGMENT_FLAG)){
 #if DEBUG_IP > 0
         printf("[IP] IP fragment is not supported (offset:%d, more_fragment:%d)",
                ip_packet->frags_and_offset & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET,
@@ -26,29 +26,72 @@ void ip_input_to_ours(net_device *source_device, ip_header *ip_packet, size_t le
         return;
     }
 
-    switch (ip_packet->protocol) {
+    switch(ip_packet->protocol){
 
         case IP_PROTOCOL_TYPE_ICMP:
 
             return icmp_input(ntohl(ip_packet->source_address),
                               ntohl(ip_packet->destination_address),
-                              ((uint8_t *) ip_packet) + IP_HEADER_SIZE, len - IP_HEADER_SIZE);
+                              ((uint8_t*) ip_packet) + IP_HEADER_SIZE, len - IP_HEADER_SIZE);
 
         case IP_PROTOCOL_TYPE_UDP:
-        case IP_PROTOCOL_TYPE_TCP: {
+        case IP_PROTOCOL_TYPE_TCP:{
             // NAPTの判定
 
+            if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP or ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){ // NAPTの対象
 
-            napt_packet_head *napt_packet = (napt_packet_head *) ((uint8_t *) ip_packet + sizeof(ip_header));
+                auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
 
-            if(in_subnet(IP_ADDRESS_FROM_HOST(192, 168, 222, 0), 24, ntohl(ip_packet->destination_address))){
+                net_device* a;
+                for(a = net_dev; a; a = a->next){
+                    if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
+                        printf("[IP] NAPT Destination packet arrived\n");
+                        napt_entry* entry;
+                        entry = get_napt_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
+
+
+                        if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
+                            uint32_t exs_sum = napt_packet->udp.checksum;
+                            exs_sum = ~exs_sum;
+                            exs_sum -= ip_packet->destination_address & 0xffff;
+                            exs_sum -= ip_packet->destination_address >> 16;
+                            exs_sum -= napt_packet->dest_port;
+                            exs_sum += htonl(entry->local_address) & 0xffff;
+                            exs_sum += htonl(entry->local_address) >> 16;
+                            exs_sum += htons(entry->local_port);
+                            exs_sum = ~exs_sum;
+                            if(exs_sum > 0xffff){
+                                exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
+                            }
+
+                            napt_packet->udp.checksum = exs_sum;
+                        }
+
+                        ip_packet->destination_address = htonl(entry->local_address);
+                        napt_packet->dest_port = htons(entry->local_port);
+
+                        ip_packet->header_checksum = 0;
+                        ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(ip_packet), sizeof(ip_header));
+
+                        my_buf* nat_fwd_buf = my_buf::create(0);
+                        nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
+                        nat_fwd_buf->len = len;
+                        ip_output(entry->local_address, nat_fwd_buf);
+
+
+                    }
+                }
+
 
             }
+
+
 
             break;
         }
 
         default:
+            printf("Die\n");
 #if DEBUG_IP > 0
             printf("[IP] Unhandled ours ip packet from %s to %s protocol %d",
                    inet_ntoa(ip_packet->source_address),
@@ -59,7 +102,7 @@ void ip_input_to_ours(net_device *source_device, ip_header *ip_packet, size_t le
     }
 }
 
-void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
+void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
     bool has_header_option = false;
 
     if(source_device->ip_dev == nullptr){
@@ -69,34 +112,34 @@ void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
         return;
     }
 
-    if (source_device->ip_dev->address == IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)) {
+    if(source_device->ip_dev->address == IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)){
 #if DEBUG_IP > 0
         printf("[IP] Illegal ip interface\n");
 #endif
         return;
     }
 
-    if (len < sizeof(ip_header) + 8) {
+    if(len < sizeof(ip_header) + 8){
 #if DEBUG_IP > 0
         printf("[IP] Illegal ip packet length\n");
 #endif
         return;
     }
 
-    auto *ip_packet = reinterpret_cast<ip_header *>(buffer);
+    auto* ip_packet = reinterpret_cast<ip_header*>(buffer);
 #if DEBUG_IP > 0
     printf("[IP] Received IPv4 type %d from %s to %s\n", ip_packet->protocol, inet_ntoa(ip_packet->source_address),
            inet_ntoa(ip_packet->destination_address));
 #endif
 
-    if (ip_packet->version != 4) {
+    if(ip_packet->version != 4){
 #if DEBUG_IP > 0
         printf("[IP] Unknown ip version\n");
 #endif
         return;
     }
 
-    if (ip_packet->header_len != (sizeof(ip_header) >> 2)) {
+    if(ip_packet->header_len != (sizeof(ip_header) >> 2)){
 #if DEBUG_IP > 0
         printf("[IP] IP header option is not supported\n");
 #endif
@@ -104,22 +147,89 @@ void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
         return; // TODO support
     }
 
-    if (ip_packet->destination_address == IP_ADDRESS_FROM_HOST(255, 255, 255, 255)) {
+    if(ip_packet->destination_address == IP_ADDRESS_FROM_HOST(255, 255, 255, 255)){
 #if DEBUG_IP > 0
         printf("[IP] Broadcast ip packet received\n");
 #endif
         return ip_input_to_ours(source_device, ip_packet, len);
     }
 
-    for (net_device *dev = net_dev; dev; dev = dev->next) {
-        if (dev->ip_dev->address != IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)) {
-            if (htonl(dev->ip_dev->address) == ip_packet->destination_address) { // TODO ブロードキャストを考慮
+    for(net_device* dev = net_dev; dev; dev = dev->next){
+        if(dev->ip_dev->address != IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)){
+            if(htonl(dev->ip_dev->address) == ip_packet->destination_address){ // TODO ブロードキャストを考慮
                 // go to ours
                 return ip_input_to_ours(dev, ip_packet, len);
 
             }
         }
     }
+
+    // go to forward
+
+    if(source_device->ip_dev->napt_inside_dev != nullptr){
+
+        if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP or ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){ // NAPTの対象
+            printf("[IP] Nat execution\n");
+            auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
+
+            napt_entry* e;
+            if((e = get_napt_entry_by_local(source_device->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->source_address), ntohs(napt_packet->src_port))) == nullptr){ // 同一フローのNAPTエントリーが無かったら
+                e = create_napt_entry(source_device->ip_dev->napt_inside_dev->entries);
+                if(e == nullptr){
+#if DEBUG_IP > 0
+                    printf("[IP] NAPT table is full!\n");
+#endif
+                    return;
+                }else{
+#if DEBUG_IP > 0
+                    printf("[IP] Created new nat table entry global port %d\n", e->global_port);
+#endif
+                }
+            }
+
+            printf("[IP] Address port translation executed %s:%d translated to %s:%d\n", inet_ntoa(ip_packet->source_address), ntohs(napt_packet->src_port), inet_htoa(source_device->ip_dev->napt_inside_dev->outside_address), e->global_port);
+
+            e->global_address = source_device->ip_dev->napt_inside_dev->outside_address;
+            e->local_address = ntohl(ip_packet->source_address);
+            e->local_port = ntohs(napt_packet->src_port);
+
+
+            // パケットの書き換え
+
+            if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
+                uint32_t exs_sum = napt_packet->udp.checksum;
+                exs_sum = ~exs_sum;
+                exs_sum -= ip_packet->source_address & 0xffff;
+                exs_sum -= ip_packet->source_address >> 16;
+                exs_sum -= napt_packet->src_port;
+                exs_sum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) & 0xffff;
+                exs_sum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) >> 16;
+                exs_sum += htons(e->global_port);
+
+                exs_sum = ~exs_sum;
+
+               printf("C: %x\n", exs_sum);
+
+
+               if(exs_sum > 0xffff){
+                   exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
+               }
+
+                napt_packet->udp.checksum = exs_sum;
+            }
+
+            ip_packet->source_address = htonl(source_device->ip_dev->napt_inside_dev->outside_address);
+            napt_packet->src_port = htons(e->global_port);
+
+            ip_packet->header_checksum = 0;
+            ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(buffer), sizeof(ip_header));
+
+
+          //  calc_checksum_16
+
+        }
+    }
+
 
     ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->destination_address));
     if(route == nullptr){
@@ -154,6 +264,7 @@ void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
 
 void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer){
 
+    /*
     if(dev->ip_dev->napt_inside_dev != nullptr){
         ip_header* ip_packet;
         if(buffer->buf_ptr != nullptr) {
@@ -176,11 +287,11 @@ void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer){
             printf("Input ip packet from inside of nat\n");
         }
     }
-
+    */
 
     arp_table_entry* entry = search_arp_table_entry(dest_address);
 
-    if(!entry) {
+    if(!entry){
 #if DEBUG_IP > 0
         printf("[IP] Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_address));
 #endif
@@ -196,7 +307,7 @@ void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer){
 void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
     arp_table_entry* entry = search_arp_table_entry(next_hop);
 
-    if(!entry) {
+    if(!entry){
 #if DEBUG_IP > 0
         printf("[IP] Trying ip output to next hop, but no arp record to %s\n", inet_htoa(next_hop));
 #endif
@@ -204,7 +315,7 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
 
         ip_route_entry* route_to_next_hop = binary_trie_search(ip_fib, next_hop);
 
-        if(route_to_next_hop == nullptr or route_to_next_hop->type != host) {
+        if(route_to_next_hop == nullptr or route_to_next_hop->type != host){
 #if DEBUG_IP > 0
             printf("[IP] Next hop %s is not reachable\n", inet_htoa(next_hop));
 #endif

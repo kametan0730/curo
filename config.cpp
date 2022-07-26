@@ -6,6 +6,17 @@
 #include "binary_trie.h"
 #include "utils.h"
 
+net_device* get_net_device_by_name(const char* interface){
+    net_device *a;
+    for (a = net_dev; a; a = a->next) {
+        if (strcmp(a->ifname, interface) == 0) {
+            return a;
+        }
+    }
+    return nullptr;
+}
+
+
 void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop){
 
     uint32_t mask = 0xffffffff;
@@ -56,33 +67,36 @@ void configure_ip(const char* interface, uint32_t address, uint32_t netmask){
 
 }
 
-void configure_ip_napt(const char* inside_interface, const char* outside_interface, uint32_t address){
+void configure_ip_napt(const char* inside_interface, const char* outside_interface){
 
-    net_device *a;
-    for (a = net_dev; a; a = a->next) {
-        if (strcmp(a->ifname, inside_interface) == 0) {
-            a->ip_dev->napt_inside_dev = (napt_inside_device *) calloc(1, sizeof(napt_inside_device));
-            a->ip_dev->napt_inside_dev->entries = (napt_entries*) calloc(1, sizeof(napt_entries));;
-        }else if(strcmp(a->ifname, outside_interface) == 0){
-            a->ip_dev->napt_outside_dev = (napt_outside_device *) calloc(1, sizeof(napt_outside_device));
-            a->ip_dev->napt_outside_dev->entries = (napt_entries*) calloc(1, sizeof(napt_entries));
-        }else{
-            if(a->next == nullptr){
-                //printf("Configure interface not found \n");
-                //return;
-            }
-        }
+    net_device* inside = get_net_device_by_name(inside_interface);
+    net_device* outside = get_net_device_by_name(outside_interface);
+
+    if(inside == nullptr or outside == nullptr){
+        printf("Failed to configure NAPT %s => %s\n", inside_interface, outside_interface);
+        return;
     }
+
+    if(inside->ip_dev == nullptr or outside->ip_dev == nullptr){
+        printf("Failed to configure NAPT %s => %s\n", inside_interface, outside_interface);
+        return;
+    }
+
+    inside->ip_dev->napt_inside_dev = (napt_inside_device *) calloc(1, sizeof(napt_inside_device));
+    inside->ip_dev->napt_inside_dev->entries = (napt_entries*) calloc(1, sizeof(napt_entries));
+    inside->ip_dev->napt_inside_dev->outside_address = outside->ip_dev->address;
+
+    //inside->ip_dev->napt_outside_dev = (napt_outside_device *) calloc(1, sizeof(napt_outside_device));
+    //inside->ip_dev->napt_outside_dev->entries = (napt_entries*) calloc(1, sizeof(napt_entries));
 
 }
 
 void configure(){
 
-    configure_ip("router-to-host0", IP_ADDRESS_FROM_HOST(192, 168, 111, 1), IP_ADDRESS_FROM_HOST(255, 255, 255, 0));
-    configure_ip("router-to-host1", IP_ADDRESS_FROM_HOST(192, 168, 222, 1), IP_ADDRESS_FROM_HOST(255, 255, 255, 0));
+    configure_ip(LINK_TO_HOST0, IP_ADDRESS_FROM_HOST(192, 168, 111, 1), IP_ADDRESS_FROM_HOST(255, 255, 255, 0));
+    configure_ip(LINK_TO_HOST1, IP_ADDRESS_FROM_HOST(192, 168, 222, 1), IP_ADDRESS_FROM_HOST(255, 255, 255, 0));
 
-    configure_ip_napt("router-to-host1", "router-to-host0", IP_ADDRESS_FROM_HOST(192, 168, 111, 1));
-
+    configure_ip_napt(LINK_TO_HOST1, LINK_TO_HOST0);
 
     configure_net_route(IP_ADDRESS_FROM_HOST(192, 168, 55, 0), 24, IP_ADDRESS_FROM_HOST(192, 168, 222, 2));
 
