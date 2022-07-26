@@ -14,4 +14,6 @@ const char* inet_htoa(uint32_t in);
 
 const char* mac_addr_toa(uint8_t * addr);
 
+bool in_subnet(uint32_t subnet_prefix, uint8_t subnet_prefix_len, uint32_t target_address);
+
 #endif //RAW_SOCKET_UTILS_H

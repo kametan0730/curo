@@ -2,6 +2,7 @@
 
 #include "utils.h"
 
+#include "napt.h"
 #include "icmp.h"
 #include "my_buf.h"
 #include "ethernet.h"
@@ -32,6 +33,20 @@ void ip_input_to_ours(net_device *source_device, ip_header *ip_packet, size_t le
             return icmp_input(ntohl(ip_packet->source_address),
                               ntohl(ip_packet->destination_address),
                               ((uint8_t *) ip_packet) + IP_HEADER_SIZE, len - IP_HEADER_SIZE);
+
+        case IP_PROTOCOL_TYPE_UDP:
+        case IP_PROTOCOL_TYPE_TCP: {
+            // NAPTの判定
+
+
+            napt_packet_head *napt_packet = (napt_packet_head *) ((uint8_t *) ip_packet + sizeof(ip_header));
+
+            if(in_subnet(IP_ADDRESS_FROM_HOST(192, 168, 222, 0), 24, ntohl(ip_packet->destination_address))){
+
+            }
+
+            break;
+        }
 
         default:
 #if DEBUG_IP > 0
@@ -83,7 +98,7 @@ void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
 
     if (ip_packet->header_len != (sizeof(ip_header) >> 2)) {
 #if DEBUG_IP > 0
-        printf("IP header option is not supported\n");
+        printf("[IP] IP header option is not supported\n");
 #endif
         has_header_option = true;
         return; // TODO support
@@ -121,18 +136,48 @@ void ip_input(net_device *source_device, uint8_t *buffer, ssize_t len) {
 
 
     if(route->type == host){
+#if DEBUG_IP > 0
+        printf("[IP] Fwd to host\n");
+#endif
         ip_output_to_host(route->device, ntohl(ip_packet->destination_address), ip_forward_buf);
         return;
     }
 
     if(route->type == network){
+#if DEBUG_IP > 0
+        printf("[IP] Fwd to net\n");
+#endif
         ip_output_to_next_hop(route->next_hop, ip_forward_buf);
         return;
     }
-
 }
 
 void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer){
+
+    if(dev->ip_dev->napt_inside_dev != nullptr){
+        ip_header* ip_packet;
+        if(buffer->buf_ptr != nullptr) {
+            ip_packet = (ip_header*) buffer->buf_ptr;
+        }else{
+            ip_packet =  (ip_header*) buffer->buffer;
+
+        }
+        printf("AAAA\n");
+
+        if(ntohs(ip_packet->protocol) == IP_PROTOCOL_TYPE_UDP or ntohs(ip_packet->protocol) == IP_PROTOCOL_TYPE_TCP){
+
+
+            napt_packet_head *napt_packet = (napt_packet_head *) ((uint8_t *) ip_packet + sizeof(ip_header));
+
+            if(in_subnet(IP_ADDRESS_FROM_HOST(192, 168, 222, 0), 24, ntohl(ip_packet->destination_address))){
+
+            }
+
+            printf("Input ip packet from inside of nat\n");
+        }
+    }
+
+
     arp_table_entry* entry = search_arp_table_entry(dest_address);
 
     if(!entry) {
@@ -186,11 +231,17 @@ void ip_output(uint32_t dest, my_buf* buffer){
     }
 
     if(route->type == host){
+#if DEBUG_IP > 0
+        printf("[IP] Fwd to host\n");
+#endif
         ip_output_to_host(route->device, dest, buffer);
         return;
     }
 
     if(route->type == network){
+#if DEBUG_IP > 0
+        printf("[IP] Fwd to net\n");
+#endif
         ip_output_to_next_hop(route->next_hop, buffer);
         return;
     }

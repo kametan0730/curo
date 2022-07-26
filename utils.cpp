@@ -66,4 +66,11 @@ const char* mac_addr_toa(uint8_t* addr){
     return mac_addr_toa_string_pool[mac_addr_toa_string_pool_index];
 }
 
+bool in_subnet(uint32_t subnet_prefix, uint8_t subnet_prefix_len, uint32_t target_address){
+    subnet_prefix >>= 32 - subnet_prefix_len;
+    subnet_prefix <<= 32 - subnet_prefix_len;
+    target_address >>= 32 - subnet_prefix_len;
+    target_address <<= 32 - subnet_prefix_len;
+    return (target_address == subnet_prefix);
+}
 
