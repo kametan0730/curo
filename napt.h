@@ -39,7 +39,9 @@ struct napt_entry{
 };
 
 struct napt_entries{
-    napt_entry translation[NAPT_GLOBAL_PORT_SIZE];
+    napt_entry icmp[1000];
+    napt_entry udp[NAPT_GLOBAL_PORT_SIZE];
+    napt_entry tcp[NAPT_GLOBAL_PORT_SIZE];
 };
 
 struct napt_outside_device{
@@ -54,10 +56,14 @@ struct napt_inside_device{
     napt_entries* entries;
 };
 
-napt_entry* get_napt_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port);
-napt_entry* get_napt_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port);
+napt_entry* get_napt_tcp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port);
+napt_entry* get_napt_tcp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port);
 
-napt_entry* create_napt_entry(napt_entries* entries);
+napt_entry* get_napt_udp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port);
+napt_entry* get_napt_udp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port);
+
+napt_entry* create_napt_tcp_entry(napt_entries* entries);
+napt_entry* create_napt_udp_entry(napt_entries* entries);
 
 
 #endif //RAW_SOCKET_NAPT_H

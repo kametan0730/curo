@@ -47,8 +47,12 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                     if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
                         printf("[IP] NAPT Destination packet arrived\n");
                         napt_entry* entry;
-                        entry = get_napt_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
+                        if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
+                            entry = get_napt_tcp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
+                        }else{
+                            entry = get_napt_udp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
 
+                        }
 
                         if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
                             uint32_t exs_sum = napt_packet->udp.checksum;
@@ -188,8 +192,18 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
             auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
 
             napt_entry* e;
-            if((e = get_napt_entry_by_local(source_device->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->source_address), ntohs(napt_packet->src_port))) == nullptr){ // 同一フローのNAPTエントリーが無かったら
-                e = create_napt_entry(source_device->ip_dev->napt_inside_dev->entries);
+            if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
+                e = get_napt_tcp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->source_address), ntohs(napt_packet->src_port));
+            }else{
+                e = get_napt_udp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->source_address), ntohs(napt_packet->src_port));
+            }
+            if(e == nullptr){ // 同一フローのNAPTエントリーが無かったら
+                if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
+
+                    e = create_napt_tcp_entry(source_device->ip_dev->napt_inside_dev->entries);
+                }else{
+                    e = create_napt_udp_entry(source_device->ip_dev->napt_inside_dev->entries);
+                }
                 if(e == nullptr){
 #if DEBUG_IP > 0
                     printf("[IP] NAPT table is full!\n");

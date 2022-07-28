@@ -1,30 +1,66 @@
 #include "napt.h"
 
-napt_entry* get_napt_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port){
+void dump_napt_tables(){
+
+}
+
+
+napt_entry* get_napt_tcp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port){
 
     for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
-        if(entries->translation[i].global_address == address and entries->translation[i].global_port == port){
-            return &entries->translation[i];
+        if(entries->tcp[i].global_address == address and entries->tcp[i].global_port == port){
+            return &entries->tcp[i];
         }
     }
     return nullptr;
 }
 
-napt_entry* get_napt_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port){
+napt_entry* get_napt_tcp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port){
 
     for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
-        if(entries->translation[i].local_address == address and entries->translation[i].local_port == port){
-            return &entries->translation[i];
+        if(entries->tcp[i].local_address == address and entries->tcp[i].local_port == port){
+            return &entries->tcp[i];
         }
     }
     return nullptr;
 }
 
-napt_entry* create_napt_entry(napt_entries* entries){
+
+napt_entry* get_napt_udp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port){
+
     for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
-        if(entries->translation[i].global_address == 0){
-            entries->translation[i].global_port = NAPT_GLOBAL_PORT_MIN + i;
-            return &entries->translation[i];
+        if(entries->udp[i].global_address == address and entries->udp[i].global_port == port){
+            return &entries->udp[i];
+        }
+    }
+    return nullptr;
+}
+
+napt_entry* get_napt_udp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port){
+
+    for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
+        if(entries->udp[i].local_address == address and entries->udp[i].local_port == port){
+            return &entries->udp[i];
+        }
+    }
+    return nullptr;
+}
+
+napt_entry* create_napt_tcp_entry(napt_entries* entries){
+    for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
+        if(entries->tcp[i].global_address == 0){
+            entries->tcp[i].global_port = NAPT_GLOBAL_PORT_MIN + i;
+            return &entries->tcp[i];
+        }
+    }
+    return nullptr;
+}
+
+napt_entry* create_napt_udp_entry(napt_entries* entries){
+    for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
+        if(entries->udp[i].global_address == 0){
+            entries->udp[i].global_port = NAPT_GLOBAL_PORT_MIN + i;
+            return &entries->udp[i];
         }
     }
     return nullptr;
