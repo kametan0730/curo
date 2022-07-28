@@ -4,6 +4,9 @@
 #include <cstdint>
 #include "ip.h"
 #include "utils.h"
+#include "icmp.h"
+
+#define NAPT_ICMP_ID_SIZE 0xffff
 
 #define NAPT_GLOBAL_PORT_MIN 20000
 #define NAPT_GLOBAL_PORT_MAX 59999
@@ -11,24 +14,35 @@
 #define NAPT_GLOBAL_PORT_SIZE (NAPT_GLOBAL_PORT_MAX - NAPT_GLOBAL_PORT_MIN + 1)
 
 struct napt_packet_head {
+    union{
+        struct{
+            union{
+                struct{
+                    uint16_t len;
+                    uint16_t checksum;
+                } udp;
+                struct{
+                    uint32_t sequence_number;
+                    uint32_t acknowledge_number;
+                    uint8_t offset;
+                    uint8_t flag;
+                    uint16_t window;
+                    uint16_t checksum;
+                    uint16_t urgent_pointer;
+                } tcp;
+
+            };
+        };
+        struct{
+            icmp_header header;
+            uint16_t identify;
+            uint16_t sequence;
+        } icmp;
+    };
     uint16_t src_port;
     uint16_t dest_port;
 
-    union{
-        struct{
-            uint16_t len;
-            uint16_t checksum;
-        } udp;
-        struct{
-            uint32_t sequence_number;
-            uint32_t acknowledge_number;
-            uint8_t offset;
-            uint8_t flag;
-            uint16_t window;
-            uint16_t checksum;
-            uint16_t urgent_pointer;
-        } tcp;
-    };
+
 };
 
 struct napt_entry{
@@ -39,7 +53,7 @@ struct napt_entry{
 };
 
 struct napt_entries{
-    napt_entry icmp[1000];
+    napt_entry icmp[0xffff];
     napt_entry udp[NAPT_GLOBAL_PORT_SIZE];
     napt_entry tcp[NAPT_GLOBAL_PORT_SIZE];
 };
@@ -56,14 +70,17 @@ struct napt_inside_device{
     napt_entries* entries;
 };
 
+napt_entry* get_napt_icmp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t id);
+napt_entry* get_napt_icmp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t id);
+
 napt_entry* get_napt_tcp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port);
 napt_entry* get_napt_tcp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port);
 
 napt_entry* get_napt_udp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port);
 napt_entry* get_napt_udp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port);
 
+napt_entry* create_napt_icmp_entry(napt_entries* entries);
 napt_entry* create_napt_tcp_entry(napt_entries* entries);
 napt_entry* create_napt_udp_entry(napt_entries* entries);
-
 
 #endif //RAW_SOCKET_NAPT_H

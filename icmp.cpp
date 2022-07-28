@@ -11,10 +11,6 @@
 #include "my_buf.h"
 #include "config.h"
 
-#define ICMP_TYPE_ECHO_REPLY 0
-#define ICMP_TYPE_DESTINATION_UNREACHABLE 3
-#define ICMP_TYPE_ECHO_REQUEST 8
-#define ICMP_TYPE_TIME_EXCEEDED 11
 
 
 void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len) {

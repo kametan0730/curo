@@ -3,6 +3,11 @@
 
 #include <iostream>
 
+#define ICMP_TYPE_ECHO_REPLY 0
+#define ICMP_TYPE_DESTINATION_UNREACHABLE 3
+#define ICMP_TYPE_ECHO_REQUEST 8
+#define ICMP_TYPE_TIME_EXCEEDED 11
+
 struct icmp_header{
     uint8_t type;
     uint8_t code;
