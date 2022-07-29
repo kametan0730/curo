@@ -14,8 +14,11 @@
 #define NAPT_GLOBAL_PORT_SIZE (NAPT_GLOBAL_PORT_MAX - NAPT_GLOBAL_PORT_MIN + 1)
 
 struct napt_packet_head {
+
     union{
-        struct{
+        struct{ // tcp, udp
+            uint16_t src_port;
+            uint16_t dest_port;
             union{
                 struct{
                     uint16_t len;
@@ -33,14 +36,12 @@ struct napt_packet_head {
 
             };
         };
-        struct{
+        struct{ // icmp
             icmp_header header;
             uint16_t identify;
             uint16_t sequence;
         } icmp;
     };
-    uint16_t src_port;
-    uint16_t dest_port;
 
 
 };
