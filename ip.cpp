@@ -26,21 +26,19 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
         return;
     }
 
-    switch(ip_packet->protocol){
-
-        case IP_PROTOCOL_TYPE_ICMP:
-
-            net_device* a;
-            for(a = net_dev; a; a = a->next){
-                if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
+    net_device* a;
+    for(a = net_dev; a; a = a->next){
+        if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
+            switch(ip_packet->protocol){
+                case IP_PROTOCOL_TYPE_ICMP:{
                     auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
-                    if(napt_packet->icmp.header.type == ICMP_TYPE_ECHO_REQUEST or napt_packet->icmp.header.type ==  ICMP_TYPE_ECHO_REPLY){
+                    if(napt_packet->icmp.header.type == ICMP_TYPE_ECHO_REQUEST or napt_packet->icmp.header.type == ICMP_TYPE_ECHO_REPLY){
                         printf("[IP] NAPT ICMP Destination packet arrived\n");
                         napt_entry* entry;
                         entry = get_napt_icmp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->icmp.identify));
                         if(entry == nullptr){ // エントリにない外側アドレスへの通信
                             // Drop
-                            return;
+                            continue;
                         }
 
                         uint32_t icmp_checksum = napt_packet->icmp.header.checksum;
@@ -66,10 +64,84 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                         ip_output(entry->local_address, nat_fwd_buf);
                         return;
                     }
+                }
+                    break;
+                case IP_PROTOCOL_TYPE_UDP:
+                case IP_PROTOCOL_TYPE_TCP:{
+                    auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
+
+                    net_device* a;
+                    for(a = net_dev; a; a = a->next){
+                        if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
+                            printf("[IP] NAPT Destination packet arrived\n");
+                            napt_entry* entry;
+                            if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
+                                entry = get_napt_tcp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
+                            }else{
+                                entry = get_napt_udp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
+
+                            }
+                            if(entry == nullptr){ // エントリにない外側アドレスへの通信
+                                // Drop
+                                continue;
+                            }
+
+                            if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
+                                uint32_t exs_sum = napt_packet->udp.checksum;
+                                exs_sum = ~exs_sum;
+                                exs_sum -= ip_packet->destination_address & 0xffff;
+                                exs_sum -= ip_packet->destination_address >> 16;
+                                exs_sum -= napt_packet->dest_port;
+                                exs_sum += htonl(entry->local_address) & 0xffff;
+                                exs_sum += htonl(entry->local_address) >> 16;
+                                exs_sum += htons(entry->local_port);
+                                exs_sum = ~exs_sum;
+                                if(exs_sum > 0xffff){
+                                    exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
+                                }
+
+                                napt_packet->udp.checksum = exs_sum;
+                            }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
+                                uint32_t exs_sum = napt_packet->tcp.checksum;
+                                exs_sum = ~exs_sum;
+                                exs_sum -= ip_packet->destination_address & 0xffff;
+                                exs_sum -= ip_packet->destination_address >> 16;
+                                exs_sum -= napt_packet->dest_port;
+                                exs_sum += htonl(entry->local_address) & 0xffff;
+                                exs_sum += htonl(entry->local_address) >> 16;
+                                exs_sum += htons(entry->local_port);
+                                exs_sum = ~exs_sum;
+                                if(exs_sum > 0xffff){
+                                    exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
+                                }
+
+                                napt_packet->tcp.checksum = exs_sum;
+                            }
+
+                            ip_packet->destination_address = htonl(entry->local_address);
+                            napt_packet->dest_port = htons(entry->local_port);
+
+                            ip_packet->header_checksum = 0;
+                            ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(ip_packet), sizeof(ip_header));
+
+                            my_buf* nat_fwd_buf = my_buf::create(0);
+                            nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
+                            nat_fwd_buf->len = len;
+                            ip_output(entry->local_address, nat_fwd_buf);
+                            return;
+                        }
+                    }
 
                 }
+                    break;
             }
+        }
+    }
 
+
+    switch(ip_packet->protocol){
+
+        case IP_PROTOCOL_TYPE_ICMP:
 
             return icmp_input(ntohl(ip_packet->source_address),
                               ntohl(ip_packet->destination_address),
@@ -79,82 +151,10 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
         case IP_PROTOCOL_TYPE_TCP:{
             // NAPTの判定
 
-            if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP or ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){ // NAPTの対象
-
-                auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
-
-                net_device* a;
-                for(a = net_dev; a; a = a->next){
-                    if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
-                        printf("[IP] NAPT Destination packet arrived\n");
-                        napt_entry* entry;
-                        if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
-                            entry = get_napt_tcp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
-                        }else{
-                            entry = get_napt_udp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
-
-                        }
-                        if(entry == nullptr){ // エントリにない外側アドレスへの通信
-                            // Drop
-                            return;
-                        }
-
-                        if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
-                            uint32_t exs_sum = napt_packet->udp.checksum;
-                            exs_sum = ~exs_sum;
-                            exs_sum -= ip_packet->destination_address & 0xffff;
-                            exs_sum -= ip_packet->destination_address >> 16;
-                            exs_sum -= napt_packet->dest_port;
-                            exs_sum += htonl(entry->local_address) & 0xffff;
-                            exs_sum += htonl(entry->local_address) >> 16;
-                            exs_sum += htons(entry->local_port);
-                            exs_sum = ~exs_sum;
-                            if(exs_sum > 0xffff){
-                                exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
-                            }
-
-                            napt_packet->udp.checksum = exs_sum;
-                        }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
-                            uint32_t exs_sum = napt_packet->tcp.checksum;
-                            exs_sum = ~exs_sum;
-                            exs_sum -= ip_packet->destination_address & 0xffff;
-                            exs_sum -= ip_packet->destination_address >> 16;
-                            exs_sum -= napt_packet->dest_port;
-                            exs_sum += htonl(entry->local_address) & 0xffff;
-                            exs_sum += htonl(entry->local_address) >> 16;
-                            exs_sum += htons(entry->local_port);
-                            exs_sum = ~exs_sum;
-                            if(exs_sum > 0xffff){
-                                exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
-                            }
-
-                            napt_packet->tcp.checksum = exs_sum;
-                        }
-
-                        ip_packet->destination_address = htonl(entry->local_address);
-                        napt_packet->dest_port = htons(entry->local_port);
-
-                        ip_packet->header_checksum = 0;
-                        ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(ip_packet), sizeof(ip_header));
-
-                        my_buf* nat_fwd_buf = my_buf::create(0);
-                        nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
-                        nat_fwd_buf->len = len;
-                        ip_output(entry->local_address, nat_fwd_buf);
-                        return;
-                    }
-                }
-
-
-            }
-
-
-
             break;
         }
 
         default:
-            printf("Die\n");
 #if DEBUG_IP > 0
             printf("[IP] Unhandled ours ip packet from %s to %s protocol %d",
                    inet_ntoa(ip_packet->source_address),
@@ -318,7 +318,7 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
         }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_ICMP){
 
             auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
-            if(napt_packet->icmp.header.type == ICMP_TYPE_ECHO_REQUEST or napt_packet->icmp.header.type ==  ICMP_TYPE_ECHO_REPLY){
+            if(napt_packet->icmp.header.type == ICMP_TYPE_ECHO_REQUEST or napt_packet->icmp.header.type == ICMP_TYPE_ECHO_REPLY){
 
                 napt_entry* e;
                 e = get_napt_icmp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->source_address), ntohs(napt_packet->icmp.identify));
@@ -371,7 +371,7 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
                 ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(buffer), sizeof(ip_header));
 
             }else{ // ICMP error packet or else
-                return ;
+                return;
             }
 
 
