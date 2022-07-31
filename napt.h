@@ -71,6 +71,8 @@ struct napt_inside_device{
     napt_entries* entries;
 };
 
+void dump_napt_tables();
+
 napt_entry* get_napt_icmp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t id);
 napt_entry* get_napt_icmp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t id);
 
