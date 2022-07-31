@@ -55,7 +55,7 @@ bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, n
             return false;
         }
     }else{
-        entry = get_napt_icmp_entry_by_local(napt_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->icmp.identify));
+        entry = get_napt_icmp_entry_by_local(napt_dev->entries, ntohl(ip_packet->source_address), ntohs(napt_packet->icmp.identify));
         if(entry == nullptr){
             entry = create_napt_icmp_entry(napt_dev->entries);
             if(entry == nullptr){
