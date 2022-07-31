@@ -1,5 +1,5 @@
-#ifndef RAW_SOCKET_UTILS_H
-#define RAW_SOCKET_UTILS_H
+#ifndef CURO_UTILS_H
+#define CURO_UTILS_H
 
 #include <cstdint>
 
@@ -16,4 +16,4 @@ const char* mac_addr_toa(uint8_t * addr);
 
 bool in_subnet(uint32_t subnet_prefix, uint8_t subnet_prefix_len, uint32_t target_address);
 
-#endif //RAW_SOCKET_UTILS_H
+#endif //CURO_UTILS_H

@@ -1,17 +1,12 @@
-//
-// Created by ubuntu on 7/4/22.
-//
-
 #include "icmp.h"
+
 #include <cstring>
-#include "net.h"
-#include "utils.h"
+#include "config.h"
 #include "ethernet.h"
 #include "ip.h"
 #include "my_buf.h"
-#include "config.h"
-
-
+#include "net.h"
+#include "utils.h"
 
 void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len) {
 

@@ -1,5 +1,5 @@
-#ifndef RAW_SOCKET_IP_H
-#define RAW_SOCKET_IP_H
+#ifndef CURO_IP_H
+#define CURO_IP_H
 
 #include <iostream>
 #include <queue>
@@ -75,4 +75,4 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer);
 void ip_output(uint32_t dest, my_buf* buffer);
 void ip_encapsulate_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint8_t protocol_type);
 
-#endif //RAW_SOCKET_IP_H
+#endif //CURO_IP_H

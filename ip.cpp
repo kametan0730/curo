@@ -1,14 +1,13 @@
 #include "ip.h"
 
-#include "utils.h"
-
-#include "napt.h"
+#include "arp.h"
+#include "binary_trie.h"
+#include "config.h"
+#include "ethernet.h"
 #include "icmp.h"
 #include "my_buf.h"
-#include "ethernet.h"
-#include "binary_trie.h"
-#include "arp.h"
-#include "config.h"
+#include "napt.h"
+#include "utils.h"
 
 binary_trie_node<ip_route_entry>* ip_fib;
 
@@ -137,7 +136,6 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
             }
         }
     }
-
 
     switch(ip_packet->protocol){
 

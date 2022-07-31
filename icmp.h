@@ -1,5 +1,5 @@
-#ifndef RAW_SOCKET_ICMP_H
-#define RAW_SOCKET_ICMP_H
+#ifndef CURO_ICMP_H
+#define CURO_ICMP_H
 
 #include <iostream>
 
@@ -33,4 +33,4 @@ struct icmp_time_exceeded{
 void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len);
 
 
-#endif //RAW_SOCKET_ICMP_H
+#endif //CURO_ICMP_H

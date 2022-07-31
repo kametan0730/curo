@@ -1,9 +1,9 @@
 #include "config.h"
 
-#include "net.h"
+#include "binary_trie.h"
 #include "ip.h"
 #include "napt.h"
-#include "binary_trie.h"
+#include "net.h"
 #include "utils.h"
 
 net_device* get_net_device_by_name(const char* interface){

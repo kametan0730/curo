@@ -1,11 +1,9 @@
-#ifndef RAW_SOCKET_NET_H
-#define RAW_SOCKET_NET_H
+#ifndef CURO_NET_H
+#define CURO_NET_H
 
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <iostream>
-
 
 
 #define CALLOC calloc
@@ -29,4 +27,4 @@ extern net_device* net_dev;
 struct my_buf;
 void net_device_send_my_buf(net_device* device, my_buf* buf);
 
-#endif //RAW_SOCKET_NET_H
+#endif //CURO_NET_H

@@ -1,7 +1,3 @@
-//
-// Created by ubuntu on 7/4/22.
-//
-
 #include "my_buf.h"
 
 uint16_t calc_checksum_16(uint16_t* buffer, size_t count, uint16_t start){
@@ -27,7 +23,7 @@ uint16_t calc_checksum_16(uint16_t* buffer, size_t count, uint16_t start){
 uint16_t calc_checksum_16_my_buf(my_buf* buffer, uint16_t start){
 
     auto* buf = reinterpret_cast<uint16_t*>(buffer->buffer);
-    int size = buffer->len;
+    uint32_t size = buffer->len;
     uint64_t sum = start;
 
     while(size > 1){

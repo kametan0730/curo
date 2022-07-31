@@ -1,10 +1,10 @@
-#ifndef RAW_SOCKET_NAPT_H
-#define RAW_SOCKET_NAPT_H
+#ifndef CURO_NAPT_H
+#define CURO_NAPT_H
 
 #include <cstdint>
+#include "icmp.h"
 #include "ip.h"
 #include "utils.h"
-#include "icmp.h"
 
 #define NAPT_ICMP_ID_SIZE 0xffff
 
@@ -59,12 +59,6 @@ struct napt_entries{
     napt_entry tcp[NAPT_GLOBAL_PORT_SIZE];
 };
 
-struct napt_outside_device{
-    uint32_t outside_address;
-
-    napt_entries* entries;
-};
-
 struct napt_inside_device{
     uint32_t outside_address;
 
@@ -86,4 +80,4 @@ napt_entry* create_napt_icmp_entry(napt_entries* entries);
 napt_entry* create_napt_tcp_entry(napt_entries* entries);
 napt_entry* create_napt_udp_entry(napt_entries* entries);
 
-#endif //RAW_SOCKET_NAPT_H
+#endif //CURO_NAPT_H

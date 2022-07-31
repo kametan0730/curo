@@ -1,5 +1,5 @@
-#ifndef RAW_SOCKET_BINARY_TRIE_H
-#define RAW_SOCKET_BINARY_TRIE_H
+#ifndef CURO_BINARY_TRIE_H
+#define CURO_BINARY_TRIE_H
 
 #include <cstdint>
 #include <string>
@@ -60,4 +60,4 @@ DATA_TYPE* binary_trie_search(binary_trie_node<DATA_TYPE>* root, uint32_t prefix
 }
 
 
-#endif //RAW_SOCKET_BINARY_TRIE_H
+#endif //CURO_BINARY_TRIE_H

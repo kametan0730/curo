@@ -1,5 +1,5 @@
-#ifndef RAW_SOCKET_MY_BUF_H
-#define RAW_SOCKET_MY_BUF_H
+#ifndef CURO_MY_BUF_H
+#define CURO_MY_BUF_H
 
 #include <cstdint>
 #include <cstring>
@@ -12,7 +12,7 @@ struct my_buf{
 
     my_buf* prev_my_buf = nullptr;
     my_buf* next_my_buf = nullptr;
-    uint64_t len = 0;
+    uint32_t len = 0;
     uint8_t* buf_ptr = nullptr;
     uint8_t buffer[];
 
@@ -102,4 +102,4 @@ uint16_t calc_checksum_16_my_buf(my_buf* buffer, uint16_t start = 0);
 uint16_t calc_checksum_16_my_buf_recursive(my_buf* buffer, uint16_t start = 0);
 
 
-#endif //RAW_SOCKET_MY_BUF_H
+#endif //CURO_MY_BUF_H

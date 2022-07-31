@@ -1,5 +1,5 @@
-#ifndef RAW_SOCKET_ARP_H
-#define RAW_SOCKET_ARP_H
+#ifndef CURO_ARP_H
+#define CURO_ARP_H
 
 #include <iostream>
 
@@ -45,4 +45,4 @@ struct arp_ip_to_ethernet{
 } __attribute__((packed));
 
 void arp_input(net_device *source_interface,  uint8_t* buffer, ssize_t len);
-#endif //RAW_SOCKET_ARP_H
+#endif //CURO_ARP_H

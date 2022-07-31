@@ -1,5 +1,5 @@
-#ifndef RAW_SOCKET_CONFIG_H
-#define RAW_SOCKET_CONFIG_H
+#ifndef CURO_CONFIG_H
+#define CURO_CONFIG_H
 
 /*
  * 各プロトコルについてデバッグレベルを設定できます
@@ -28,4 +28,4 @@
 
 void configure();
 
-#endif //RAW_SOCKET_CONFIG_H
+#endif //CURO_CONFIG_H

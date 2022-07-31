@@ -1,6 +1,6 @@
-#ifndef RAW_SOCKET_COMMAND_H
-#define RAW_SOCKET_COMMAND_H
+#ifndef CURO_COMMAND_H
+#define CURO_COMMAND_H
 
 void command_input(char c);
 
-#endif //RAW_SOCKET_COMMAND_H
+#endif //CURO_COMMAND_H

@@ -19,14 +19,13 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <netpacket/packet.h>
-#include <list>
-#include "net.h"
-#include "ethernet.h"
-#include "utils.h"
-#include "ip.h"
 #include "binary_trie.h"
-#include "config.h"
 #include "command.h"
+#include "config.h"
+#include "ethernet.h"
+#include "ip.h"
+#include "net.h"
+#include "utils.h"
 
 #define NET_INPUT ethernet_input
 

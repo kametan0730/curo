@@ -1,19 +1,7 @@
 #include "net.h"
 
-#include <fcntl.h>
-#include <poll.h>
-#include <unistd.h>
-#include <cerrno>
-#include <unistd.h>
 #include <netinet/ip.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include <linux/if_ether.h>
-#include <ifaddrs.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <netpacket/packet.h>
 #include "my_buf.h"
 net_device* net_dev;
 

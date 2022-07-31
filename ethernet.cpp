@@ -1,13 +1,11 @@
 #include "ethernet.h"
 
-
 #include <cstring>
-
 #include "arp.h"
-#include "ip.h"
-#include "utils.h"
-#include "my_buf.h"
 #include "config.h"
+#include "ip.h"
+#include "my_buf.h"
+#include "utils.h"
 
 uint8_t broadcast_address[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
