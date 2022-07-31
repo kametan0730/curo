@@ -19,6 +19,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <netpacket/packet.h>
+#include <termios.h>
 #include "binary_trie.h"
 #include "command.h"
 #include "config.h"
@@ -128,6 +129,14 @@ int main(){
     ip_fib = (binary_trie_node<ip_route_entry>*) calloc(1, sizeof(binary_trie_node<ip_route_entry>));
 
     configure();
+
+    termios attr;
+    tcgetattr(0, &attr);
+
+    attr.c_lflag &= ~(ECHO | ICANON);
+    attr.c_cc[VTIME] = 0;
+    attr.c_cc[VMIN] = 1;
+    tcsetattr(0, TCSANOW, &attr);
 
     fcntl(0, F_SETFL, O_NONBLOCK);
 

@@ -58,7 +58,7 @@ struct napt_entry{
 };
 
 struct napt_entries{
-    napt_entry icmp[0xffff];
+    napt_entry icmp[NAPT_ICMP_ID_SIZE];
     napt_entry udp[NAPT_GLOBAL_PORT_SIZE];
     napt_entry tcp[NAPT_GLOBAL_PORT_SIZE];
 };

@@ -1,16 +1,19 @@
 #include "napt.h"
 
+#include "config.h"
 #include "net.h"
 #include "my_buf.h"
 
 void dump_napt_tables(){
+    printf("NAT Table\n");
+    printf("|-PROTO-|--------SOURCE---------|------DESTINATION------|\n");
     net_device* a;
     for(a = net_dev; a; a = a->next){
         if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr){
 
             for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
                 if(a->ip_dev->napt_inside_dev->entries->tcp[i].global_port != 0){
-                    printf("[NAT] TCP %s:%d => %s:%d\n",
+                    printf("|  TCP  | %15s:%05d | %15s:%05d |\n",
                            inet_htoa(a->ip_dev->napt_inside_dev->entries->tcp[i].local_address),
                            a->ip_dev->napt_inside_dev->entries->tcp[i].local_port,
                            inet_htoa(a->ip_dev->napt_inside_dev->entries->tcp[i].global_address),
@@ -18,7 +21,7 @@ void dump_napt_tables(){
                     );
                 }
                 if(a->ip_dev->napt_inside_dev->entries->udp[i].global_port != 0){
-                    printf("[NAT] UDP %s:%d => %s:%d\n",
+                    printf("|  UDP  | %15s:%05d | %15s:%05d |\n",
                            inet_htoa(a->ip_dev->napt_inside_dev->entries->udp[i].local_address),
                            a->ip_dev->napt_inside_dev->entries->udp[i].local_port,
                            inet_htoa(a->ip_dev->napt_inside_dev->entries->udp[i].global_address),
@@ -27,8 +30,8 @@ void dump_napt_tables(){
                 }
             }
             for(int i = 0; i < NAPT_ICMP_ID_SIZE; ++i){
-                if(a->ip_dev->napt_inside_dev->entries->icmp[i].global_port != 0){
-                    printf("[NAT] ICMP %s:%d => %s:%d\n",
+                if(a->ip_dev->napt_inside_dev->entries->icmp[i].local_address != 0){
+                    printf("|  ICMP | %15s:%05d | %15s:%05d |\n",
                            inet_htoa(a->ip_dev->napt_inside_dev->entries->icmp[i].local_address),
                            a->ip_dev->napt_inside_dev->entries->icmp[i].local_port,
                            inet_htoa(a->ip_dev->napt_inside_dev->entries->icmp[i].global_address),
@@ -38,6 +41,7 @@ void dump_napt_tables(){
             }
         }
     }
+    printf("|-------|-----------------------|-----------------------|\n");
 }
 
 
@@ -47,7 +51,9 @@ bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, n
     if(napt_packet->icmp.header.type != ICMP_TYPE_ECHO_REQUEST and napt_packet->icmp.header.type != ICMP_TYPE_ECHO_REPLY){
         return false;
     }
-    printf("[NAPT] NAPT ICMP Destination packet arrived\n");
+#if DEBUG_NAT > 0
+    printf("[NAT] NAPT ICMP Destination packet arrived\n");
+#endif
     napt_entry* entry;
     if(direction == napt_direction::incoming){
         entry = get_napt_icmp_entry_by_global(napt_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->icmp.identify));
@@ -65,16 +71,14 @@ bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, n
                 return false;
             }
 #if DEBUG_NAT > 0
-            printf("[NAT] Created new nat table entry global id %d\n", e->global_port);
+            printf("[NAT] Created new nat table entry global id %d\n", entry->global_port);
 #endif
             entry->global_address = napt_dev->outside_address;
             entry->local_address = ntohl(ip_packet->source_address);
             entry->local_port = ntohs(napt_packet->icmp.identify);
         }
     }
-#if DEBUG_NAT > 0
-    printf("[NAT] Address port translation executed %s:%d translated to %s:%d\n", inet_ntoa(ip_packet->source_address), ntohs(napt_packet->icmp.identify), inet_htoa(source_device->ip_dev->napt_inside_dev->outside_address), e->global_port);
-#endif
+
 
     uint32_t checksum = napt_packet->icmp.header.checksum;
     checksum = ~checksum;
@@ -95,6 +99,9 @@ bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, n
         ip_packet->destination_address = htonl(entry->local_address);
         napt_packet->icmp.identify = htons(entry->local_port);
     }else{
+#if DEBUG_NAT > 0
+        printf("[NAT] Address port translation executed %s:%d => %s:%d\n", inet_ntoa(ip_packet->source_address), ntohs(napt_packet->icmp.identify), inet_htoa(napt_dev->outside_address), entry->global_port);
+#endif
         ip_packet->source_address = htonl(napt_dev->outside_address);
         napt_packet->icmp.identify = htons(entry->global_port);
     }

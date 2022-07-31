@@ -71,20 +71,23 @@ arp_table_entry *search_arp_table_entry(uint32_t ip_address) {
 
 void dump_arp_table_entry() {
 
+    printf("ARP Table\n");
+    printf("|-----IP ADDR-----|------MAC ADDR-----|-----INTERFACE-----|-INDEX|\n");
+
     for (int i = 0; i < ARP_TABLE_SIZE; ++i) {
         if (arp_table[i].ip_address == 0) {
             continue;
         }
 
         for (arp_table_entry *a = &arp_table[i]; a; a = a->next) {
-#if DEBUG_ARP > 0
-            printf("[ARP] %s to %s dev %s index %04d\n",
+            printf("| %15s | %14s | %17s | %04d |\n",
                    inet_htoa(a->ip_address),
                    mac_addr_toa(a->mac_address),
                    a->device->ifname, i);
-#endif
         }
     }
+
+    printf("|-----------------|-------------------|-------------------|------|\n");
 }
 
 void issue_arp_request(net_device *device, uint32_t search_ip) {
