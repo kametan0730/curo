@@ -35,14 +35,12 @@ struct ip_header {
 } __attribute__((packed));
 
 struct napt_inside_device;
-struct napt_outside_device;
 
 struct ip_device {
     uint32_t address = 0;
     uint32_t netmask = 0;
     uint32_t gateway = 0;
     napt_inside_device* napt_inside_dev = nullptr;
-    napt_outside_device* napt_outside_dev = nullptr;
 };
 
 enum ip_route_type{

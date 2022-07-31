@@ -13,6 +13,7 @@
 #define DEBUG_IP        1
 #define DEBUG_ARP       1
 #define DEBUG_ICMP      1
+#define DEBUG_NAT       1
 
 /*
 #define DEBUG_ETHERNET  0
