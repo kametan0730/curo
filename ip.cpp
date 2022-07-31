@@ -38,6 +38,10 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                         printf("[IP] NAPT ICMP Destination packet arrived\n");
                         napt_entry* entry;
                         entry = get_napt_icmp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->icmp.identify));
+                        if(entry == nullptr){ // エントリにない外側アドレスへの通信
+                            // Drop
+                            return;
+                        }
 
                         uint32_t icmp_checksum = napt_packet->icmp.header.checksum;
                         icmp_checksum = ~icmp_checksum;
@@ -60,7 +64,7 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                         nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
                         nat_fwd_buf->len = len;
                         ip_output(entry->local_address, nat_fwd_buf);
-
+                        return;
                     }
 
                 }
@@ -89,6 +93,10 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                         }else{
                             entry = get_napt_udp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
 
+                        }
+                        if(entry == nullptr){ // エントリにない外側アドレスへの通信
+                            // Drop
+                            return;
                         }
 
                         if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
@@ -133,8 +141,7 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                         nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
                         nat_fwd_buf->len = len;
                         ip_output(entry->local_address, nat_fwd_buf);
-
-
+                        return;
                     }
                 }
 
