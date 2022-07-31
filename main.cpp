@@ -26,13 +26,14 @@
 #include "ip.h"
 #include "binary_trie.h"
 #include "config.h"
+#include "command.h"
 
 #define NET_INPUT ethernet_input
 
 
-void dump_frame(unsigned char *buf, size_t len) {
+void dump_frame(unsigned char* buf, size_t len){
 
-    for (int i = 0; i < len; ++i) {
+    for(int i = 0; i < len; ++i){
         printf("%02x", buf[i]);
     }
     printf("\n");
@@ -43,19 +44,19 @@ void net_device_output(net_device* dev, uint8_t* buf){
 
 }
 
-int main() {
+int main(){
 
     struct ifreq ifr{};
-    struct ifaddrs *addrs;
+    struct ifaddrs* addrs;
     bool enable;
 
     getifaddrs(&addrs);
 
     char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
 
-    for (ifaddrs *tmp = addrs; tmp; tmp = tmp->ifa_next) {
+    for(ifaddrs* tmp = addrs; tmp; tmp = tmp->ifa_next){
 
-        if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET) {
+        if(tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET){
 
             enable = false;
 
@@ -63,8 +64,8 @@ int main() {
 
             strcpy(ifr.ifr_name, tmp->ifa_name);
 
-            for (int i = 0; i < sizeof(enable_interfaces) / IF_NAMESIZE; i++) {
-                if (strcmp(enable_interfaces[i], tmp->ifa_name) == 0) {
+            for(int i = 0; i < sizeof(enable_interfaces) / IF_NAMESIZE; i++){
+                if(strcmp(enable_interfaces[i], tmp->ifa_name) == 0){
                     enable = true;
                 }
             }
@@ -75,22 +76,22 @@ int main() {
             }
 
             int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-            if (sock == -1) {
+            if(sock == -1){
                 continue;
             }
 
-            if (ioctl(sock, SIOCGIFHWADDR, &ifr) != 0) {
+            if(ioctl(sock, SIOCGIFHWADDR, &ifr) != 0){
                 close(sock);
                 continue;
             }
 
-            auto *dev = (net_device *) malloc(sizeof(net_device));
+            auto* dev = (net_device*) malloc(sizeof(net_device));
             dev->fd = sock;
             strcpy(dev->ifname, tmp->ifa_name);
 
             memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6);
 
-            if (ioctl(sock, SIOCGIFINDEX, &ifr) == -1) {
+            if(ioctl(sock, SIOCGIFINDEX, &ifr) == -1){
                 close(sock);
                 continue;
             }
@@ -100,7 +101,7 @@ int main() {
             addr.sll_family = AF_PACKET;
             addr.sll_protocol = htons(ETH_P_ALL);
             addr.sll_ifindex = ifr.ifr_ifindex;
-            if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+            if(bind(sock, (struct sockaddr*) &addr, sizeof(addr)) == -1){
                 close(sock);
                 free(dev);
                 continue;
@@ -108,7 +109,7 @@ int main() {
 
             printf("Created dev %s sock %d addr %s \n", dev->ifname, dev->fd, mac_addr_toa(dev->mac_address));
 
-            net_device *next;
+            net_device* next;
             next = net_dev;
             net_dev = dev;
             dev->next = next;
@@ -125,27 +126,33 @@ int main() {
         return 0;
     }
 
-    ip_fib = (binary_trie_node<ip_route_entry> *) calloc(1, sizeof(binary_trie_node<ip_route_entry>));
+    ip_fib = (binary_trie_node<ip_route_entry>*) calloc(1, sizeof(binary_trie_node<ip_route_entry>));
 
     configure();
 
+    fcntl(0, F_SETFL, O_NONBLOCK);
+
     ssize_t n;
     unsigned char buf[1550];
-    while (true) {
+    while(true){
 
-        for (net_device *a = net_dev; a; a = a->next) {
+        char input = getchar();
+        if(input != -1){
+            command_input(input);
+        }
+
+        for(net_device* a = net_dev; a; a = a->next){
             /* ソケットからデータ受信 */
             n = recv(a->fd, buf, sizeof(buf), 0);
-            if (n == -1) {
-                if (errno == EAGAIN) {
+            if(n == -1){
+                if(errno == EAGAIN){
                     continue;
-                } else {
+                }else{
                     perror("recv");
                     //close(a->fd);
                     return -1;
                 }
             }
-            printf("Received %zd bytes from %s\n", n, a->ifname);
 
             NET_INPUT(a, buf, n);
 

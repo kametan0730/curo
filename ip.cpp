@@ -274,8 +274,6 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
 
                 exs_sum = ~exs_sum;
 
-                printf("C: %x\n", exs_sum);
-
 
                 if(exs_sum > 0xffff){
                     exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
@@ -294,8 +292,6 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
                 exs_sum += htons(e->global_port);
 
                 exs_sum = ~exs_sum;
-
-                printf("C: %x\n", exs_sum);
 
 
                 if(exs_sum > 0xffff){
