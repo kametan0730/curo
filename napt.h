@@ -73,6 +73,7 @@ void dump_napt_tables();
 
 bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, napt_direction direction);
 bool napt_udp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, napt_direction direction);
+bool napt_tcp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, napt_direction direction);
 
 napt_entry* get_napt_icmp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t id);
 napt_entry* get_napt_icmp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t id);
