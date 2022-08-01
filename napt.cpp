@@ -184,6 +184,7 @@ bool napt_udp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
     }
     ip_packet->header_checksum = 0;
     ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(ip_packet), sizeof(ip_header));
+    return true;
 }
 
 napt_entry* get_napt_icmp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t id){
