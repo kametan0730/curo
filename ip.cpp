@@ -27,7 +27,8 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
 
     net_device* a;
     for(a = net_dev; a; a = a->next){
-        if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
+        if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and
+           a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
             switch(ip_packet->protocol){
                 case IP_PROTOCOL_TYPE_ICMP:{
                     if(napt_icmp(ip_packet, len, a->ip_dev->napt_inside_dev, napt_direction::incoming)){
@@ -39,7 +40,16 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                     }
                 }
                     break;
-                case IP_PROTOCOL_TYPE_UDP:
+                case IP_PROTOCOL_TYPE_UDP:{
+                    if(napt_udp(ip_packet, len, a->ip_dev->napt_inside_dev, napt_direction::incoming)){
+                        my_buf* nat_fwd_buf = my_buf::create(0);
+                        nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
+                        nat_fwd_buf->len = len;
+                        ip_output(ntohl(ip_packet->destination_address), nat_fwd_buf);
+                        return;
+                    }
+                    break;
+                }
                 case IP_PROTOCOL_TYPE_TCP:{
                     auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
 
@@ -47,9 +57,13 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                     printf("[IP] NAPT Destination packet arrived\n");
                     napt_entry* entry;
                     if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
-                        entry = get_napt_tcp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
+                        entry = get_napt_tcp_entry_by_global(a->ip_dev->napt_inside_dev->entries,
+                                                             ntohl(ip_packet->destination_address),
+                                                             ntohs(napt_packet->dest_port));
                     }else{
-                        entry = get_napt_udp_entry_by_global(a->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->destination_address), ntohs(napt_packet->dest_port));
+                        entry = get_napt_udp_entry_by_global(a->ip_dev->napt_inside_dev->entries,
+                                                             ntohl(ip_packet->destination_address),
+                                                             ntohs(napt_packet->dest_port));
 
                     }
                     if(entry == nullptr){ // エントリにない外側アドレスへの通信
@@ -92,7 +106,8 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                     napt_packet->dest_port = htons(entry->local_port);
 
                     ip_packet->header_checksum = 0;
-                    ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(ip_packet), sizeof(ip_header));
+                    ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(ip_packet),
+                                                                  sizeof(ip_header));
 
                     my_buf* nat_fwd_buf = my_buf::create(0);
                     nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
@@ -198,15 +213,17 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
 
     if(source_device->ip_dev->napt_inside_dev != nullptr){
 
-        if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP or ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){ // NAPTの対象
+        if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){ // NAPTの対象
             printf("[IP] Nat execution\n");
             auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
 
             napt_entry* e;
             if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
-                e = get_napt_tcp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->source_address), ntohs(napt_packet->src_port));
+                e = get_napt_tcp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries,
+                                                ntohl(ip_packet->source_address), ntohs(napt_packet->src_port));
             }else{
-                e = get_napt_udp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries, ntohl(ip_packet->source_address), ntohs(napt_packet->src_port));
+                e = get_napt_udp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries,
+                                                ntohl(ip_packet->source_address), ntohs(napt_packet->src_port));
             }
             if(e == nullptr){ // 同一フローのNAPTエントリーが無かったら
                 if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
@@ -227,12 +244,13 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
                 }
             }
 
-            printf("[IP] Address port translation executed %s:%d translated to %s:%d\n", inet_ntoa(ip_packet->source_address), ntohs(napt_packet->src_port), inet_htoa(source_device->ip_dev->napt_inside_dev->outside_address), e->global_port);
+            printf("[IP] Address port translation executed %s:%d translated to %s:%d\n",
+                   inet_ntoa(ip_packet->source_address), ntohs(napt_packet->src_port),
+                   inet_htoa(source_device->ip_dev->napt_inside_dev->outside_address), e->global_port);
 
             e->global_address = source_device->ip_dev->napt_inside_dev->outside_address;
             e->local_address = ntohl(ip_packet->source_address);
             e->local_port = ntohs(napt_packet->src_port);
-
 
             // パケットの書き換え
 
@@ -247,7 +265,6 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
                 exs_sum += htons(e->global_port);
 
                 exs_sum = ~exs_sum;
-
 
                 if(exs_sum > 0xffff){
                     exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
@@ -273,7 +290,6 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
                 }
 
                 napt_packet->tcp.checksum = exs_sum;
-
             }
 
             ip_packet->source_address = htonl(source_device->ip_dev->napt_inside_dev->outside_address);
@@ -281,7 +297,10 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
 
             ip_packet->header_checksum = 0;
             ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(buffer), sizeof(ip_header));
-
+        }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
+            if(!napt_udp(ip_packet, len, source_device->ip_dev->napt_inside_dev, napt_direction::outgoing)){
+                return; // NAPTできないパケットはドロップ
+            }
         }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_ICMP){
 
             if(!napt_icmp(ip_packet, len, source_device->ip_dev->napt_inside_dev, napt_direction::outgoing)){
@@ -297,7 +316,6 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
 
         }
     }
-
 
     ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->destination_address));
     if(route == nullptr){
@@ -403,7 +421,8 @@ void ip_output(uint32_t dest, my_buf* buffer){
 }
 
 
-void ip_encapsulate_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint8_t protocol_type){
+void
+ip_encapsulate_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint8_t protocol_type){
     uint16_t total_len = 0;
 
     my_buf* current_buffer = buffer;
