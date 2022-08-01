@@ -210,21 +210,16 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
     }
 
     // go to forward
-
     if(source_device->ip_dev->napt_inside_dev != nullptr){
-
         if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){ // NAPTの対象
             printf("[IP] Nat execution\n");
             auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
 
             napt_entry* e;
-            if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
-                e = get_napt_tcp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries,
-                                                ntohl(ip_packet->source_address), ntohs(napt_packet->src_port));
-            }else{
-                e = get_napt_udp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries,
-                                                ntohl(ip_packet->source_address), ntohs(napt_packet->src_port));
-            }
+
+            e = get_napt_tcp_entry_by_local(source_device->ip_dev->napt_inside_dev->entries,
+                                            ntohl(ip_packet->source_address), ntohs(napt_packet->src_port));
+
             if(e == nullptr){ // 同一フローのNAPTエントリーが無かったら
                 if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
 
@@ -253,44 +248,20 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
             e->local_port = ntohs(napt_packet->src_port);
 
             // パケットの書き換え
-
-            if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
-                uint32_t exs_sum = napt_packet->udp.checksum;
-                exs_sum = ~exs_sum;
-                exs_sum -= ip_packet->source_address & 0xffff;
-                exs_sum -= ip_packet->source_address >> 16;
-                exs_sum -= napt_packet->src_port;
-                exs_sum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) & 0xffff;
-                exs_sum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) >> 16;
-                exs_sum += htons(e->global_port);
-
-                exs_sum = ~exs_sum;
-
-                if(exs_sum > 0xffff){
-                    exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
-                }
-
-                napt_packet->udp.checksum = exs_sum;
-            }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
-
-                uint32_t exs_sum = napt_packet->tcp.checksum;
-                exs_sum = ~exs_sum;
-                exs_sum -= ip_packet->source_address & 0xffff;
-                exs_sum -= ip_packet->source_address >> 16;
-                exs_sum -= napt_packet->src_port;
-                exs_sum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) & 0xffff;
-                exs_sum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) >> 16;
-                exs_sum += htons(e->global_port);
-
-                exs_sum = ~exs_sum;
-
-
-                if(exs_sum > 0xffff){
-                    exs_sum = (exs_sum & 0xffff) + (exs_sum >> 16);
-                }
-
-                napt_packet->tcp.checksum = exs_sum;
+            uint32_t checksum = napt_packet->tcp.checksum;
+            checksum = ~checksum;
+            checksum -= ip_packet->source_address & 0xffff;
+            checksum -= ip_packet->source_address >> 16;
+            checksum -= napt_packet->src_port;
+            checksum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) & 0xffff;
+            checksum += htonl(source_device->ip_dev->napt_inside_dev->outside_address) >> 16;
+            checksum += htons(e->global_port);
+            checksum = ~checksum;
+            if(checksum > 0xffff){
+                checksum = (checksum & 0xffff) + (checksum >> 16);
             }
+
+            napt_packet->tcp.checksum = checksum;
 
             ip_packet->source_address = htonl(source_device->ip_dev->napt_inside_dev->outside_address);
             napt_packet->src_port = htons(e->global_port);

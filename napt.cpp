@@ -118,8 +118,9 @@ bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, n
 bool napt_udp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, napt_direction direction){
 
     auto* napt_packet = (napt_packet_head*) ((uint8_t*) ip_packet + sizeof(ip_header));
-
-    printf("[IP] NAPT Destination packet arrived\n");
+#if DEBUG_NAT > 0
+    printf("[NAT] NAPT Destination packet arrived\n");
+#endif
     napt_entry* entry;
     if(direction == napt_direction::incoming){
         entry = get_napt_udp_entry_by_global(napt_dev->entries, ntohl(ip_packet->destination_address),
