@@ -303,11 +303,10 @@ napt_entry* get_napt_tcp_entry_by_local(napt_entries* entries, uint32_t address,
 
 napt_entry* get_napt_udp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port){
 
-    for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
-        if(entries->udp[i].global_address == address and entries->udp[i].global_port == port){
-            return &entries->udp[i];
-        }
+    if(entries->udp[port].global_address == address and entries->udp[port].global_port == port){
+        return &entries->udp[port];
     }
+
     return nullptr;
 }
 
