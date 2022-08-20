@@ -30,4 +30,6 @@ struct net_device{
 
 extern net_device* net_dev_list;
 
+// #define FOR_EACH_NET_DEV(dev) for (dev = net_dev_list; dev; dev = dev->next)
+
 #endif //CURO_NET_H

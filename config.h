@@ -15,6 +15,9 @@
 #define DEBUG_ICMP      1
 #define DEBUG_NAT       1
 
+
+//#define CURO_ZERO_COPY_MODE_ENABLE
+
 /*
 #define DEBUG_ETHERNET  0
 #define DEBUG_IP        0

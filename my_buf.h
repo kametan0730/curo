@@ -5,15 +5,18 @@
 #include <cstring>
 #include <cstdio>
 #include <string>
+#include "config.h"
 
 #define CALLOC calloc
 #define FREE free
-struct my_buf{
 
+struct my_buf{
     my_buf* prev_my_buf = nullptr;
     my_buf* next_my_buf = nullptr;
     uint32_t len = 0;
-    uint8_t* buf_ptr = nullptr;
+//#ifdef CURO_ZERO_COPY_MODE_ENABLE
+    uint8_t* buf_ptr = nullptr; //これ本ではなくす?
+//#endif
     uint8_t buffer[];
 
     /**

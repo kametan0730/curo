@@ -25,13 +25,13 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
         return;
     }
 
-    net_device* a;
-    for(a = net_dev_list; a; a = a->next){
-        if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and
-           a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
+    net_device* dev;
+    for(dev = net_dev_list; dev; dev = dev->next){
+        if(dev->ip_dev != nullptr and dev->ip_dev->napt_inside_dev != nullptr and
+           dev->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
             switch(ip_packet->protocol){
                 case IP_PROTOCOL_TYPE_ICMP:{
-                    if(napt_icmp(ip_packet, len, a->ip_dev->napt_inside_dev, napt_direction::incoming)){
+                    if(napt_icmp(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_direction::incoming)){
                         my_buf* nat_fwd_buf = my_buf::create(0);
                         nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
                         nat_fwd_buf->len = len;
@@ -40,7 +40,7 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                     }
                 } break;
                 case IP_PROTOCOL_TYPE_UDP:{
-                    if(napt_udp(ip_packet, len, a->ip_dev->napt_inside_dev, napt_direction::incoming)){
+                    if(napt_udp(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_direction::incoming)){
                         my_buf* nat_fwd_buf = my_buf::create(0);
                         nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
                         nat_fwd_buf->len = len;
@@ -50,7 +50,7 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                 } break;
                 case IP_PROTOCOL_TYPE_TCP:{
 
-                    if(napt_tcp(ip_packet, len, a->ip_dev->napt_inside_dev, napt_direction::incoming)){
+                    if(napt_tcp(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_direction::incoming)){
                         my_buf* nat_fwd_buf = my_buf::create(0);
                         nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
                         nat_fwd_buf->len = len;

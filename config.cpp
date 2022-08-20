@@ -7,10 +7,10 @@
 #include "utils.h"
 
 net_device* get_net_device_by_name(const char* interface){
-    net_device *a;
-    for (a = net_dev_list; a; a = a->next) {
-        if (strcmp(a->ifname, interface) == 0) {
-            return a;
+    net_device* dev;
+    for(dev = net_dev_list; dev; dev = dev->next){
+        if(strcmp(dev->ifname, interface) == 0){
+            return dev;
         }
     }
     return nullptr;
@@ -22,7 +22,7 @@ void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop
     uint32_t mask = 0xffffffff;
     mask <<= (32 - prefix_len);
 
-    ip_route_entry *ire = (ip_route_entry *) calloc(1, sizeof(ip_route_entry));
+    ip_route_entry* ire = static_cast<ip_route_entry*>(calloc(1, sizeof(ip_route_entry)));
     ire->type = network;
     ire->next_hop = next_hop;
 
@@ -33,16 +33,16 @@ void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop
 
 void configure_ip(const char* interface, uint32_t address, uint32_t netmask){
 
-    net_device *a;
-    for (a = net_dev_list; a; a = a->next) {
-        if (strcmp(a->ifname, interface) == 0) {
-            printf("Set ip address to %s\n", a->ifname);
-            a->ip_dev = (ip_device *) calloc(1, sizeof(ip_device));
-            a->ip_dev->address = address;
-            a->ip_dev->netmask = netmask;
+    net_device* dev;
+    for(dev = net_dev_list; dev; dev = dev->next){
+        if(strcmp(dev->ifname, interface) == 0){
+            printf("Set ip address to %s\n", dev->ifname);
+            dev->ip_dev = (ip_device*) calloc(1, sizeof(ip_device));
+            dev->ip_dev->address = address;
+            dev->ip_dev->netmask = netmask;
             break;
         }else{
-            if(a->next == nullptr){
+            if(dev->next == nullptr){
                 printf("Configure interface not found %s\n", interface);
                 return;
             }
@@ -50,12 +50,12 @@ void configure_ip(const char* interface, uint32_t address, uint32_t netmask){
     }
 
 
-    ip_route_entry *ire = (ip_route_entry *) calloc(1, sizeof(ip_route_entry));
+    ip_route_entry* ire = (ip_route_entry*) calloc(1, sizeof(ip_route_entry));
     ire->type = host;
-    ire->device = a;
+    ire->device = dev;
 
     int len = 0; // サブネットマスクとプレフィックス長の変換
-    for (; len < 32; ++len) {
+    for(; len < 32; ++len){
         if(!(netmask >> (31 - len) & 0b01)){
             break;
         }
@@ -82,7 +82,7 @@ void configure_ip_napt(const char* inside_interface, const char* outside_interfa
         return;
     }
 
-    inside->ip_dev->napt_inside_dev = (napt_inside_device *) calloc(1, sizeof(napt_inside_device));
+    inside->ip_dev->napt_inside_dev = (napt_inside_device*) calloc(1, sizeof(napt_inside_device));
     inside->ip_dev->napt_inside_dev->entries = (napt_entries*) calloc(1, sizeof(napt_entries));
     inside->ip_dev->napt_inside_dev->outside_address = outside->ip_dev->address;
 

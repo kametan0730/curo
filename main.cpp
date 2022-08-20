@@ -42,6 +42,7 @@ int net_device_transmit(struct net_device *dev, my_buf* buf){
     while(current_buffer != nullptr){
 
         if(total_len + current_buffer->len > sizeof(real_buffer)){ // Overflowする場合
+            printf("[DEV] Frame is too long!\n");
             return -1;
         }
 
