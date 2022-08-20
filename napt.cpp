@@ -61,13 +61,13 @@ bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, n
 #endif
     napt_entry* entry;
     if(direction == napt_direction::incoming){
-        entry = get_napt_icmp_entry_by_global(napt_dev->entries, ntohl(ip_packet->destination_address),
+        entry = get_napt_icmp_entry_by_global(napt_dev->entries, ntohl(ip_packet->dest_addr),
                                               ntohs(napt_packet->icmp.identify));
         if(entry == nullptr){
             return false;
         }
     }else{
-        entry = get_napt_icmp_entry_by_local(napt_dev->entries, ntohl(ip_packet->source_address),
+        entry = get_napt_icmp_entry_by_local(napt_dev->entries, ntohl(ip_packet->src_addr),
                                              ntohs(napt_packet->icmp.identify));
         if(entry == nullptr){
             entry = create_napt_icmp_entry(napt_dev->entries);
@@ -81,7 +81,7 @@ bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, n
             printf("[NAT] Created new nat table entry global id %d\n", entry->global_port);
 #endif
             entry->global_address = napt_dev->outside_address;
-            entry->local_address = ntohl(ip_packet->source_address);
+            entry->local_address = ntohl(ip_packet->src_addr);
             entry->local_port = ntohs(napt_packet->icmp.identify);
         }
     }
@@ -102,14 +102,14 @@ bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, n
     napt_packet->icmp.header.checksum = checksum;
 
     if(direction == napt_direction::incoming){
-        ip_packet->destination_address = htonl(entry->local_address);
+        ip_packet->dest_addr = htonl(entry->local_address);
         napt_packet->icmp.identify = htons(entry->local_port);
     }else{
 #if DEBUG_NAT > 0
-        printf("[NAT] Address port translation executed %s:%d => %s:%d\n", inet_ntoa(ip_packet->source_address),
+        printf("[NAT] Address port translation executed %s:%d => %s:%d\n", inet_ntoa(ip_packet->src_addr),
                ntohs(napt_packet->icmp.identify), inet_htoa(napt_dev->outside_address), entry->global_port);
 #endif
-        ip_packet->source_address = htonl(napt_dev->outside_address);
+        ip_packet->src_addr = htonl(napt_dev->outside_address);
         napt_packet->icmp.identify = htons(entry->global_port);
     }
 
@@ -127,13 +127,13 @@ bool napt_udp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
 #endif
     napt_entry* entry;
     if(direction == napt_direction::incoming){
-        entry = get_napt_udp_entry_by_global(napt_dev->entries, ntohl(ip_packet->destination_address),
+        entry = get_napt_udp_entry_by_global(napt_dev->entries, ntohl(ip_packet->dest_addr),
                                              ntohs(napt_packet->dest_port));
         if(entry == nullptr){
             return false;
         }
     }else{
-        entry = get_napt_udp_entry_by_local(napt_dev->entries, ntohl(ip_packet->source_address),
+        entry = get_napt_udp_entry_by_local(napt_dev->entries, ntohl(ip_packet->src_addr),
                                             ntohs(napt_packet->src_port));
         if(entry == nullptr){
             entry = create_napt_udp_entry(napt_dev->entries);
@@ -147,7 +147,7 @@ bool napt_udp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
             printf("[NAT] Created new nat table entry global port %d\n", entry->global_port);
 #endif
             entry->global_address = napt_dev->outside_address;
-            entry->local_address = ntohl(ip_packet->source_address);
+            entry->local_address = ntohl(ip_packet->src_addr);
             entry->local_port = ntohs(napt_packet->src_port);
 
         }
@@ -157,15 +157,15 @@ bool napt_udp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
     checksum = ~checksum;
 
     if(direction == napt_direction::incoming){
-        checksum -= ip_packet->destination_address & 0xffff;
-        checksum -= ip_packet->destination_address >> 16;
+        checksum -= ip_packet->dest_addr & 0xffff;
+        checksum -= ip_packet->dest_addr >> 16;
         checksum -= napt_packet->dest_port;
         checksum += htonl(entry->local_address) & 0xffff;
         checksum += htonl(entry->local_address) >> 16;
         checksum += htons(entry->local_port);
     }else{
-        checksum -= ip_packet->source_address & 0xffff;
-        checksum -= ip_packet->source_address >> 16;
+        checksum -= ip_packet->src_addr & 0xffff;
+        checksum -= ip_packet->src_addr >> 16;
         checksum -= napt_packet->src_port;
         checksum += htonl(napt_dev->outside_address) & 0xffff;
         checksum += htonl(napt_dev->outside_address) >> 16;
@@ -180,10 +180,10 @@ bool napt_udp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
     napt_packet->udp.checksum = checksum;
 
     if(direction == napt_direction::incoming){
-        ip_packet->destination_address = htonl(entry->local_address);
+        ip_packet->dest_addr = htonl(entry->local_address);
         napt_packet->dest_port = htons(entry->local_port);
     }else{
-        ip_packet->source_address = htonl(napt_dev->outside_address);
+        ip_packet->src_addr = htonl(napt_dev->outside_address);
         napt_packet->src_port = htons(entry->global_port);
     }
     ip_packet->header_checksum = 0;
@@ -199,13 +199,13 @@ bool napt_tcp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
 #endif
     napt_entry* entry;
     if(direction == napt_direction::incoming){
-        entry = get_napt_tcp_entry_by_global(napt_dev->entries, ntohl(ip_packet->destination_address),
+        entry = get_napt_tcp_entry_by_global(napt_dev->entries, ntohl(ip_packet->dest_addr),
                                              ntohs(napt_packet->dest_port));
         if(entry == nullptr){
             return false;
         }
     }else{
-        entry = get_napt_tcp_entry_by_local(napt_dev->entries, ntohl(ip_packet->source_address),
+        entry = get_napt_tcp_entry_by_local(napt_dev->entries, ntohl(ip_packet->src_addr),
                                             ntohs(napt_packet->src_port));
         if(entry == nullptr){
             entry = create_napt_tcp_entry(napt_dev->entries);
@@ -219,7 +219,7 @@ bool napt_tcp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
             printf("[NAT] Created new nat table entry global port %d\n", entry->global_port);
 #endif
             entry->global_address = napt_dev->outside_address;
-            entry->local_address = ntohl(ip_packet->source_address);
+            entry->local_address = ntohl(ip_packet->src_addr);
             entry->local_port = ntohs(napt_packet->src_port);
 
         }
@@ -229,15 +229,15 @@ bool napt_tcp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
     checksum = ~checksum;
 
     if(direction == napt_direction::incoming){
-        checksum -= ip_packet->destination_address & 0xffff;
-        checksum -= ip_packet->destination_address >> 16;
+        checksum -= ip_packet->dest_addr & 0xffff;
+        checksum -= ip_packet->dest_addr >> 16;
         checksum -= napt_packet->dest_port;
         checksum += htonl(entry->local_address) & 0xffff;
         checksum += htonl(entry->local_address) >> 16;
         checksum += htons(entry->local_port);
     }else{
-        checksum -= ip_packet->source_address & 0xffff;
-        checksum -= ip_packet->source_address >> 16;
+        checksum -= ip_packet->src_addr & 0xffff;
+        checksum -= ip_packet->src_addr >> 16;
         checksum -= napt_packet->src_port;
         checksum += htonl(napt_dev->outside_address) & 0xffff;
         checksum += htonl(napt_dev->outside_address) >> 16;
@@ -252,10 +252,10 @@ bool napt_tcp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
     napt_packet->tcp.checksum = checksum;
 
     if(direction == napt_direction::incoming){
-        ip_packet->destination_address = htonl(entry->local_address);
+        ip_packet->dest_addr = htonl(entry->local_address);
         napt_packet->dest_port = htons(entry->local_port);
     }else{
-        ip_packet->source_address = htonl(napt_dev->outside_address);
+        ip_packet->src_addr = htonl(napt_dev->outside_address);
         napt_packet->src_port = htons(entry->global_port);
     }
     ip_packet->header_checksum = 0;

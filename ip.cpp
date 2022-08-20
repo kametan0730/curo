@@ -56,7 +56,7 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
     // NAPTの外側から内側への通信か判断
     for(net_device* dev = net_dev_list; dev; dev = dev->next){
         if(dev->ip_dev != nullptr and dev->ip_dev->napt_inside_dev != nullptr and
-           dev->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
+           dev->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->dest_addr)){
             bool napt_executed = false;
             switch(ip_packet->protocol){
                 case IP_PROTOCOL_TYPE_ICMP:
@@ -85,7 +85,7 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                 memcpy(nat_fwd_buf->buffer, ip_packet, len);
                 nat_fwd_buf->len = len;
 #endif
-                ip_output(ntohl(ip_packet->destination_address), nat_fwd_buf);
+                ip_output(ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), nat_fwd_buf);
                 return;
             }
         }
@@ -96,8 +96,8 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
 
         case IP_PROTOCOL_TYPE_ICMP:
 
-            return icmp_input(ntohl(ip_packet->source_address),
-                              ntohl(ip_packet->destination_address),
+            return icmp_input(ntohl(ip_packet->src_addr),
+                              ntohl(ip_packet->dest_addr),
                               ((uint8_t*) ip_packet) + IP_HEADER_SIZE, len - IP_HEADER_SIZE);
 
         case IP_PROTOCOL_TYPE_UDP:
@@ -108,8 +108,8 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
         default:
 #if DEBUG_IP > 0
             printf("[IP] Unhandled ours ip packet from %s to %s protocol %d",
-                   inet_ntoa(ip_packet->source_address),
-                   inet_ntoa(ip_packet->destination_address),
+                   inet_ntoa(ip_packet->src_addr),
+                   inet_ntoa(ip_packet->dest_addr),
                    ip_packet->protocol);
 #endif
             return;
@@ -142,8 +142,8 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
 
     auto* ip_packet = reinterpret_cast<ip_header*>(buffer);
 #if DEBUG_IP > 0
-    printf("[IP] Received IPv4 type %d from %s to %s\n", ip_packet->protocol, inet_ntoa(ip_packet->source_address),
-           inet_ntoa(ip_packet->destination_address));
+    printf("[IP] Received IPv4 type %d from %s to %s\n", ip_packet->protocol, inet_ntoa(ip_packet->src_addr),
+           inet_ntoa(ip_packet->dest_addr));
 #endif
 
     if(ip_packet->version != 4){
@@ -161,7 +161,12 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
         return; // TODO support
     }
 
-    if(ip_packet->destination_address == IP_ADDRESS_FROM_HOST(255, 255, 255, 255)){
+    if(ip_packet->ttl <= 1){
+        send_icmp_time_exceeded(src_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED, buffer);
+        return;
+    }
+
+    if(ip_packet->dest_addr == IP_ADDRESS_FROM_HOST(255, 255, 255, 255)){
 #if DEBUG_IP > 0
         printf("[IP] Broadcast ip packet received\n");
 #endif
@@ -170,7 +175,7 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
 
     for(net_device* dev = net_dev_list; dev; dev = dev->next){
         if(dev->ip_dev->address != IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)){
-            if(htonl(dev->ip_dev->address) == ip_packet->destination_address){ // TODO ブロードキャストを考慮
+            if(htonl(dev->ip_dev->address) == ip_packet->dest_addr){ // TODO ブロードキャストを考慮
                 // go to ours
                 return ip_input_to_ours(dev, ip_packet, len);
 
@@ -204,14 +209,21 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
     }
 #endif
 
-    ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->destination_address));
+    ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->dest_addr));
     if(route == nullptr){
 #if DEBUG_IP > 0
-        printf("[IP] No route to %s\n", inet_htoa(ntohl(ip_packet->destination_address)));
+        printf("[IP] No route to %s\n", inet_htoa(ntohl(ip_packet->dest_addr)));
 #endif
         // Drop packet
         return;
     }
+
+    // TTLを1へらす
+    ip_packet->ttl--;
+
+    ip_packet->header_checksum = 0;
+    ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(buffer), sizeof(ip_header));
+
 
 #ifdef MYBUF_NON_COPY_MODE_ENABLE
     my_buf* ip_forward_buf = my_buf::create(0);
@@ -227,7 +239,7 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
 #if DEBUG_IP > 0
         printf("[IP] Fwd to host\n");
 #endif
-        ip_output_to_host(route->device, ntohl(ip_packet->destination_address), ip_forward_buf);
+        ip_output_to_host(route->device, ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ip_forward_buf);
         return;
     }
 
@@ -240,18 +252,19 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
     }
 }
 
-void ip_output_to_host(net_device* dev, uint32_t dest_address, my_buf* buffer){
+void ip_output_to_host(net_device* dev, uint32_t src_addr, uint32_t dest_addr, my_buf* buffer){
 
-    arp_table_entry* entry = search_arp_table_entry(dest_address);
+    arp_table_entry* entry = search_arp_table_entry(dest_addr);
 
     if(!entry){
 #if DEBUG_IP > 0
-        printf("[IP] Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_address));
+        printf("[IP] Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_addr));
 #endif
+        //send_icmp_destination_unreachable(dev->ip_dev->address, src_addr, ICMP_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE, );
+
         my_buf::my_buf_free(buffer, true);
         // : Drop packet
-
-        issue_arp_request(dev, dest_address);
+        issue_arp_request(dev, dest_addr);
     }else{
         ethernet_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP);
     }
@@ -274,7 +287,6 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
 #endif
             my_buf::my_buf_free(buffer, true);
 
-
         }else{
             issue_arp_request(route_to_next_hop->device, next_hop);
         }
@@ -284,12 +296,12 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
     }
 }
 
-void ip_output(uint32_t dest, my_buf* buffer){
+void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf* buffer){
 
-    ip_route_entry* route = binary_trie_search(ip_fib, dest);
+    ip_route_entry* route = binary_trie_search(ip_fib, dest_addr);
     if(route == nullptr){
 #if DEBUG_IP > 0
-        printf("[IP] No route to %s\n", inet_htoa(dest));
+        printf("[IP] No route to %s\n", inet_htoa(dest_addr));
 #endif
         return;
     }
@@ -298,7 +310,7 @@ void ip_output(uint32_t dest, my_buf* buffer){
 #if DEBUG_IP > 0
         printf("[IP] Fwd to host\n");
 #endif
-        ip_output_to_host(route->device, dest, buffer);
+        ip_output_to_host(route->device, src_addr, dest_addr, buffer);
         return;
     }
 
@@ -314,7 +326,7 @@ void ip_output(uint32_t dest, my_buf* buffer){
 
 
 void
-ip_encapsulate_output(uint32_t destination_address, uint32_t source_address, my_buf* buffer, uint8_t protocol_type){
+ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf* buffer, uint8_t protocol_type){
     uint16_t total_len = 0;
 
     my_buf* current_buffer = buffer;
@@ -328,7 +340,6 @@ ip_encapsulate_output(uint32_t destination_address, uint32_t source_address, my_
     buffer->add_header(buf); // 連結
 
     auto* ip_buf = reinterpret_cast<ip_header*>(buf->buffer);
-    // ip_buf->vhl = (4 << 4) | (sizeof(ip_header) >> 2);
     ip_buf->version = 4;
     ip_buf->header_len = sizeof(ip_header) >> 2;
     ip_buf->tos = 0;
@@ -340,9 +351,9 @@ ip_encapsulate_output(uint32_t destination_address, uint32_t source_address, my_
     ip_buf->frags_and_offset = 0;
     ip_buf->ttl = 0xff;
     ip_buf->header_checksum = 0;
-    ip_buf->destination_address = htonl(destination_address);
-    ip_buf->source_address = htonl(source_address);
+    ip_buf->dest_addr = htonl(dest_addr);
+    ip_buf->src_addr = htonl(src_addr);
     ip_buf->header_checksum = calc_checksum_16_my_buf(buf);
 
-    ip_output(destination_address, buf);
+    ip_output(src_addr, dest_addr, buf);
 }

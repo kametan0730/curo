@@ -101,7 +101,7 @@ void configure(){
     configure_ip(LINK_TO_HOST0, IP_ADDRESS_FROM_HOST(192, 168, 111, 1), IP_ADDRESS_FROM_HOST(255, 255, 255, 0));
     configure_ip(LINK_TO_HOST1, IP_ADDRESS_FROM_HOST(192, 168, 222, 1), IP_ADDRESS_FROM_HOST(255, 255, 255, 0));
 
-    configure_ip_napt(LINK_TO_HOST1, LINK_TO_HOST0);
+    //configure_ip_napt(LINK_TO_HOST1, LINK_TO_HOST0);
 
     configure_net_route(IP_ADDRESS_FROM_HOST(192, 168, 55, 0), 24, IP_ADDRESS_FROM_HOST(192, 168, 222, 2));
 
