@@ -9,7 +9,9 @@
 template<typename DATA_TYPE>
 struct binary_trie_node{
     DATA_TYPE* data;
+    uint32_t depth;
 
+    binary_trie_node* parent;
     binary_trie_node* node_0;
     binary_trie_node* node_1;
 };
@@ -24,12 +26,17 @@ void binary_trie_add(binary_trie_node<DATA_TYPE>* root, uint32_t prefix, uint32_
             if(current->node_1 == nullptr){
                 current->node_1 = (binary_trie_node<DATA_TYPE>*) calloc(1, sizeof(binary_trie_node<DATA_TYPE>));
                 current->node_1->data = 0;
+                current->node_1->depth = i;
+                current->node_1->parent = current;
             }
             current = current->node_1;
         }else{ // 上からiビット目が0だったら
             if(current->node_0 == nullptr){
                 current->node_0 = (binary_trie_node<DATA_TYPE>*) calloc(1, sizeof(binary_trie_node<DATA_TYPE>));
                 current->node_0->data = 0;
+                current->node_0->depth = i;
+                current->node_0->parent = current;
+
             }
             current = current->node_0;
         }
@@ -59,5 +66,19 @@ DATA_TYPE* binary_trie_search(binary_trie_node<DATA_TYPE>* root, uint32_t prefix
     return current->data;
 }
 
+template<typename DATA_TYPE>
+uint32_t locate_prefix(binary_trie_node<DATA_TYPE>* target, binary_trie_node<DATA_TYPE>* root){
+    uint8_t len = target->depth;
+    uint32_t result = 0;
+    while(target != root){
+        if(target->parent->node_1 == target){
+            result |= (1 << (32 - len));
+        }
+        len--;
+        target = target->parent;
+    }
+
+    return result;
+}
 
 #endif //CURO_BINARY_TRIE_H

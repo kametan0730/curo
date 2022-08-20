@@ -11,6 +11,33 @@
 
 binary_trie_node<ip_route_entry>* ip_fib;
 
+void dump_ip_fib(){
+    binary_trie_node<ip_route_entry>* current_node;
+    std::queue<binary_trie_node<ip_route_entry>*> node_queue;
+    node_queue.push(ip_fib);
+
+    while(!node_queue.empty()){
+        current_node = node_queue.front();
+        node_queue.pop();
+
+        if(current_node->data != nullptr){
+            if(current_node->data->type == ip_route_type::host){
+                printf("%s/%d connected %s\n", inet_htoa(locate_prefix(current_node, ip_fib)), current_node->depth, current_node->data->device->ifname);
+            }else{
+                printf("%s/%d nexthop %s\n", inet_htoa(locate_prefix(current_node, ip_fib)), current_node->depth, inet_htoa(current_node->data->next_hop));
+            }
+        }
+
+        if(current_node->node_0 != nullptr){
+            node_queue.push(current_node->node_0);
+        }
+        if(current_node->node_1 != nullptr){
+            node_queue.push(current_node->node_1);
+        }
+    }
+}
+
+
 void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t len){
 
     if((ntohs(ip_packet->frags_and_offset) & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET) != 0 or

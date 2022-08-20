@@ -8,5 +8,7 @@ void command_input(char c){
         dump_arp_table_entry();
     }else if(c == 'n'){
         dump_napt_tables();
+    }else if(c == 'r'){
+        dump_ip_fib();
     }
 }

@@ -62,6 +62,8 @@ struct binary_trie_node;
 
 extern binary_trie_node<ip_route_entry>* ip_fib;
 
+void dump_ip_fib();
+
 struct net_device;
 
 void ip_input(net_device *dev, uint8_t *buffer, ssize_t len);
