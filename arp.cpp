@@ -121,7 +121,7 @@ void arp_request_arrives(net_device *source_interface, arp_ip_to_ethernet *packe
      */
     add_arp_table_entry(source_interface, packet->sha, ntohl(packet->spa));
 
-    for (net_device *a = net_dev; a; a = a->next) { // TODO このループいる?
+    for (net_device *a = net_dev_list; a; a = a->next) { // TODO このループいる?
 
         if (a->ip_dev != nullptr and a->ip_dev->address != IP_ADDRESS_FROM_HOST(0, 0, 0, 0)) {
             if (a->ip_dev->address == ntohl(packet->tpa)) {

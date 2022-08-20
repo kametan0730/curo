@@ -58,7 +58,7 @@ void ethernet_output_broadcast(net_device* device, my_buf* buffer, uint16_t prot
 
     buffer->add_header(new_buffer);
 
-    net_device_send_my_buf(device, new_buffer);
+    device->ops.transmit(device, new_buffer);
 }
 
 void ethernet_output(net_device* device, uint8_t* dest_mac_addr, my_buf* buffer, uint16_t protocol_type){
@@ -84,5 +84,5 @@ void ethernet_output(net_device* device, uint8_t* dest_mac_addr, my_buf* buffer,
     printf("\n");
 #endif
 
-    net_device_send_my_buf(device, ethernet_header_my_buf);
+    device->ops.transmit(device, ethernet_header_my_buf);
 }

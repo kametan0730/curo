@@ -8,7 +8,7 @@ void dump_napt_tables(){
     printf("NAT Table\n");
     printf("|-PROTO-|--------SOURCE---------|------DESTINATION------|\n");
     net_device* a;
-    for(a = net_dev; a; a = a->next){
+    for(a = net_dev_list; a; a = a->next){
         if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr){
 
             for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){

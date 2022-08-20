@@ -27,24 +27,69 @@
 #include "ip.h"
 #include "net.h"
 #include "utils.h"
+#include "my_buf.h"
 
-#define NET_INPUT ethernet_input
+struct net_device_data{
+    int fd;
+};
 
+int net_device_transmit(struct net_device *dev, my_buf* buf){
 
-void dump_frame(unsigned char* buf, size_t len){
+    uint8_t real_buffer[1550];
+    uint16_t total_len = 0;
 
-    for(int i = 0; i < len; ++i){
-        printf("%02x", buf[i]);
+    my_buf* current_buffer = buf;
+    while(current_buffer != nullptr){
+
+        if(total_len + current_buffer->len > sizeof(real_buffer)){ // Overflowする場合
+            return -1;
+        }
+
+        if(current_buffer->buf_ptr == nullptr){
+
+            memcpy(&real_buffer[total_len], current_buffer->buffer, current_buffer->len);
+        }else{
+
+            memcpy(&real_buffer[total_len], current_buffer->buf_ptr, current_buffer->len);
+        }
+
+        total_len += current_buffer->len;
+        current_buffer = current_buffer->next_my_buf;
     }
-    printf("\n");
 
+    /*
+    printf("Send %d bytes\n", total_len);
+
+    for (int i = 0; i < total_len; ++i) {
+        printf("%02x", real_buffer[i]);
+    }
+
+    printf("\n");
+    */
+
+    send(((net_device_data*)dev->data)->fd, real_buffer, total_len, 0);
+
+    my_buf::my_buf_free(buf, true);
+    return 0;
 }
 
-void net_device_output(net_device* dev, uint8_t* buf){
-
+int net_device_poll(net_device* dev){
+    uint8_t buffer[1550];
+    long n = recv(((net_device_data*)dev->data)->fd, buffer, sizeof(buffer), 0);
+    if(n == -1){
+        if(errno == EAGAIN){
+            return 0;
+        }else{
+            return -1;
+        }
+    }
+    ethernet_input(dev, buffer, n);
+    return 0;
 }
 
 int main(){
+
+    typedef void entry_point_function_type(struct ss* arg);
 
     struct ifreq ifr{};
     struct ifaddrs* addrs;
@@ -85,8 +130,11 @@ int main(){
                 continue;
             }
 
-            auto* dev = (net_device*) malloc(sizeof(net_device));
-            dev->fd = sock;
+            auto* dev = (net_device*) malloc(sizeof(net_device) + sizeof(net_device_data));
+            dev->ops.transmit = net_device_transmit;
+            dev->ops.poll = net_device_poll;
+
+            ((net_device_data*) dev->data)->fd = sock;
             strcpy(dev->ifname, tmp->ifa_name);
 
             memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6);
@@ -96,7 +144,7 @@ int main(){
                 continue;
             }
 
-            struct sockaddr_ll addr{};
+            sockaddr_ll addr{};
             memset(&addr, 0x00, sizeof(addr));
             addr.sll_family = AF_PACKET;
             addr.sll_protocol = htons(ETH_P_ALL);
@@ -107,21 +155,21 @@ int main(){
                 continue;
             }
 
-            printf("Created dev %s sock %d addr %s \n", dev->ifname, dev->fd, mac_addr_toa(dev->mac_address));
+            printf("Created dev %s sock %d addr %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
 
             net_device* next;
-            next = net_dev;
-            net_dev = dev;
+            next = net_dev_list;
+            net_dev_list = dev;
             dev->next = next;
 
-            int val = fcntl(dev->fd, F_GETFL, 0);
-            fcntl(dev->fd, F_SETFL, val | O_NONBLOCK); // ノンブロック
+            int val = fcntl(sock, F_GETFL, 0);
+            fcntl(sock, F_SETFL, val | O_NONBLOCK); // ノンブロック
         }
     }
 
     freeifaddrs(addrs);
 
-    if(net_dev == nullptr){
+    if(net_dev_list == nullptr){
         printf("No interface is enabled!\n");
         return 0;
     }
@@ -130,7 +178,7 @@ int main(){
 
     configure();
 
-    termios attr;
+    termios attr{};
     tcgetattr(0, &attr);
 
     attr.c_lflag &= ~(ECHO | ICANON);
@@ -149,21 +197,8 @@ int main(){
             command_input(input);
         }
 
-        for(net_device* a = net_dev; a; a = a->next){
-            /* ソケットからデータ受信 */
-            n = recv(a->fd, buf, sizeof(buf), 0);
-            if(n == -1){
-                if(errno == EAGAIN){
-                    continue;
-                }else{
-                    perror("recv");
-                    //close(a->fd);
-                    return -1;
-                }
-            }
-
-            NET_INPUT(a, buf, n);
-
+        for(net_device* a = net_dev_list; a; a = a->next){
+            a->ops.poll(a);
         }
     }
 

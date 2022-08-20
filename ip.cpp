@@ -26,7 +26,7 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
     }
 
     net_device* a;
-    for(a = net_dev; a; a = a->next){
+    for(a = net_dev_list; a; a = a->next){
         if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr and
            a->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
             switch(ip_packet->protocol){
@@ -140,7 +140,7 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
         return ip_input_to_ours(source_device, ip_packet, len);
     }
 
-    for(net_device* dev = net_dev; dev; dev = dev->next){
+    for(net_device* dev = net_dev_list; dev; dev = dev->next){
         if(dev->ip_dev->address != IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)){
             if(htonl(dev->ip_dev->address) == ip_packet->destination_address){ // TODO ブロードキャストを考慮
                 // go to ours

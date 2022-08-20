@@ -8,7 +8,7 @@
 
 net_device* get_net_device_by_name(const char* interface){
     net_device *a;
-    for (a = net_dev; a; a = a->next) {
+    for (a = net_dev_list; a; a = a->next) {
         if (strcmp(a->ifname, interface) == 0) {
             return a;
         }
@@ -34,7 +34,7 @@ void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop
 void configure_ip(const char* interface, uint32_t address, uint32_t netmask){
 
     net_device *a;
-    for (a = net_dev; a; a = a->next) {
+    for (a = net_dev_list; a; a = a->next) {
         if (strcmp(a->ifname, interface) == 0) {
             printf("Set ip address to %s\n", a->ifname);
             a->ip_dev = (ip_device *) calloc(1, sizeof(ip_device));
