@@ -261,11 +261,9 @@ bool napt_tcp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, na
 
 napt_entry* get_napt_icmp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t id){
 
-    for(int i = 0; i < NAPT_ICMP_ID_SIZE; ++i){
-        if(entries->icmp[i].global_address == address and entries->icmp[i].global_port == id){
-            return &entries->icmp[i];
+        if(entries->icmp[id].global_address == address and entries->icmp[id].global_port == id){
+            return &entries->icmp[id];
         }
-    }
     return nullptr;
 }
 
@@ -282,10 +280,8 @@ napt_entry* get_napt_icmp_entry_by_local(napt_entries* entries, uint32_t address
 
 napt_entry* get_napt_tcp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port){
 
-    for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
-        if(entries->tcp[i].global_address == address and entries->tcp[i].global_port == port){
-            return &entries->tcp[i];
-        }
+    if(entries->tcp[port - NAPT_GLOBAL_PORT_MIN].global_address == address and entries->tcp[port - NAPT_GLOBAL_PORT_MIN].global_port == port){
+        return &entries->tcp[port - NAPT_GLOBAL_PORT_MIN];
     }
     return nullptr;
 }
@@ -294,6 +290,7 @@ napt_entry* get_napt_tcp_entry_by_local(napt_entries* entries, uint32_t address,
 
     for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
         if(entries->tcp[i].local_address == address and entries->tcp[i].local_port == port){
+            printf("Matched %d!\n", i);
             return &entries->tcp[i];
         }
     }
@@ -302,9 +299,8 @@ napt_entry* get_napt_tcp_entry_by_local(napt_entries* entries, uint32_t address,
 
 
 napt_entry* get_napt_udp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port){
-
-    if(entries->udp[port].global_address == address and entries->udp[port].global_port == port){
-        return &entries->udp[port];
+    if(entries->udp[port - NAPT_GLOBAL_PORT_MIN].global_address == address and entries->udp[port - NAPT_GLOBAL_PORT_MIN].global_port == port){
+        return &entries->udp[port] - NAPT_GLOBAL_PORT_MIN;
     }
 
     return nullptr;
