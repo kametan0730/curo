@@ -69,6 +69,7 @@ void configure_ip(const char* interface, uint32_t address, uint32_t netmask){
 
 void configure_ip_napt(const char* inside_interface, const char* outside_interface){
 
+#ifdef ENABLE_NAPT
     net_device* inside = get_net_device_by_name(inside_interface);
     net_device* outside = get_net_device_by_name(outside_interface);
 
@@ -88,6 +89,10 @@ void configure_ip_napt(const char* inside_interface, const char* outside_interfa
 
     //inside->ip_dev->napt_outside_dev = (napt_outside_device *) calloc(1, sizeof(napt_outside_device));
     //inside->ip_dev->napt_outside_dev->entries = (napt_entries*) calloc(1, sizeof(napt_entries));
+
+#else
+    printf("NAPT has not been enabled for this build\n");
+#endif
 
 }
 

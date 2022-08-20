@@ -52,7 +52,8 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
         return;
     }
 
-    // NAPTすべき通信か判断
+#ifdef ENABLE_NAPT
+    // NAPTの外側から内側への通信か判断
     for(net_device* dev = net_dev_list; dev; dev = dev->next){
         if(dev->ip_dev != nullptr and dev->ip_dev->napt_inside_dev != nullptr and
            dev->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
@@ -89,6 +90,7 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
             }
         }
     }
+#endif
 
     switch(ip_packet->protocol){
 
@@ -99,11 +101,9 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                               ((uint8_t*) ip_packet) + IP_HEADER_SIZE, len - IP_HEADER_SIZE);
 
         case IP_PROTOCOL_TYPE_UDP:
-        case IP_PROTOCOL_TYPE_TCP:{
-            // NAPTの判定
-
+        case IP_PROTOCOL_TYPE_TCP:
+            // まだこのルータにはUDP/TCPを扱う機能はない
             break;
-        }
 
         default:
 #if DEBUG_IP > 0
@@ -116,17 +116,17 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
     }
 }
 
-void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
+void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
     bool has_header_option = false;
 
-    if(source_device->ip_dev == nullptr){
+    if(src_dev->ip_dev == nullptr){
 #if DEBUG_IP > 0
         printf("[IP] Illegal ip interface\n");
 #endif
         return;
     }
 
-    if(source_device->ip_dev->address == IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)){
+    if(src_dev->ip_dev->address == IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)){
 #if DEBUG_IP > 0
         printf("[IP] Illegal ip interface\n");
 #endif
@@ -165,7 +165,7 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
 #if DEBUG_IP > 0
         printf("[IP] Broadcast ip packet received\n");
 #endif
-        return ip_input_to_ours(source_device, ip_packet, len);
+        return ip_input_to_ours(src_dev, ip_packet, len);
     }
 
     for(net_device* dev = net_dev_list; dev; dev = dev->next){
@@ -178,22 +178,23 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
         }
     }
 
-    // go to forward
-    if(source_device->ip_dev->napt_inside_dev != nullptr){
+
+#ifdef ENABLE_NAPT
+    // NAPTの内側から外側への通信
+    if(src_dev->ip_dev->napt_inside_dev != nullptr){
         if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){ // NAPTの対象
-            if(!napt_tcp(ip_packet, len, source_device->ip_dev->napt_inside_dev, napt_direction::outgoing)){
+            if(!napt_tcp(ip_packet, len, src_dev->ip_dev->napt_inside_dev, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ
             }
         }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
-            if(!napt_udp(ip_packet, len, source_device->ip_dev->napt_inside_dev, napt_direction::outgoing)){
+            if(!napt_udp(ip_packet, len, src_dev->ip_dev->napt_inside_dev, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ
             }
         }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_ICMP){
-            if(!napt_icmp(ip_packet, len, source_device->ip_dev->napt_inside_dev, napt_direction::outgoing)){
+            if(!napt_icmp(ip_packet, len, src_dev->ip_dev->napt_inside_dev, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ
             }
         }else{
-
 #if DEBUG_IP > 0
             printf("[IP] NAPT unimplemented packet dropped type=%d\n", ip_packet->protocol);
 #endif
@@ -201,6 +202,7 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
 
         }
     }
+#endif
 
     ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->destination_address));
     if(route == nullptr){

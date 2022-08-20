@@ -5,6 +5,7 @@
 #include "my_buf.h"
 
 void dump_napt_tables(){
+#ifdef ENABLE_NAPT
     printf("NAT Table\n");
     printf("|-PROTO-|--------SOURCE---------|------DESTINATION------|\n");
     net_device* a;
@@ -42,6 +43,9 @@ void dump_napt_tables(){
         }
     }
     printf("|-------|-----------------------|-----------------------|\n");
+#else
+    printf("NAPT has not been enabled for this build\n");
+#endif
 }
 
 

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <queue>
+#include "config.h"
 
 #define IP_ADDRESS_FROM_HOST(A, B, C, D) (A * 0x1000000u + B * 0x10000 + C * 0x100 + D)
 #define IP_ADDRESS_FROM_NETWORK(D, C, B, A) (A * 0x1000000u + B * 0x10000 + C * 0x100 + D)
@@ -40,7 +41,9 @@ struct ip_device {
     uint32_t address = 0;
     uint32_t netmask = 0;
     uint32_t gateway = 0;
+#ifdef ENABLE_NAPT
     napt_inside_device* napt_inside_dev = nullptr;
+#endif
 };
 
 enum ip_route_type{
@@ -66,7 +69,7 @@ void dump_ip_fib();
 
 struct net_device;
 
-void ip_input(net_device *dev, uint8_t *buffer, ssize_t len);
+void ip_input(net_device *src_dev, uint8_t *buffer, ssize_t len);
 
 struct my_buf;
 

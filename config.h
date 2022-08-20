@@ -18,6 +18,8 @@
 
 #define MYBUF_NON_COPY_MODE_ENABLE
 
+#define ENABLE_NAPT
+
 /*
 #define DEBUG_ETHERNET  0
 #define DEBUG_IP        0
