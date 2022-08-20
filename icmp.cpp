@@ -49,7 +49,7 @@ void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len)
     }
 }
 
-void issue_icmp_time_exceeded(uint32_t source, uint32_t destination, uint8_t code, void* data){
+void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void* data){
 
     my_buf* buffer = my_buf::create(sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
 
@@ -64,7 +64,5 @@ void issue_icmp_time_exceeded(uint32_t source, uint32_t destination, uint8_t cod
 
     icmp_message->header.checksum = calc_checksum_16_my_buf(buffer);
 
-    ip_encapsulate_output(destination, source, buffer, IP_PROTOCOL_TYPE_ICMP);
-
+    ip_encapsulate_output(dest_addr, src_addr, buffer, IP_PROTOCOL_TYPE_ICMP);
 }
-
