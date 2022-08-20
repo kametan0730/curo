@@ -33,7 +33,7 @@ struct net_device_data{
     int fd;
 };
 
-int net_device_transmit(struct net_device *dev, my_buf* buf){
+int net_device_transmit(struct net_device* dev, my_buf* buf){
 
     uint8_t real_buffer[1550];
     uint16_t total_len = 0;
@@ -46,13 +46,15 @@ int net_device_transmit(struct net_device *dev, my_buf* buf){
             return -1;
         }
 
-        if(current_buffer->buf_ptr == nullptr){
-
-            memcpy(&real_buffer[total_len], current_buffer->buffer, current_buffer->len);
-        }else{
-
+#ifdef MYBUF_NON_COPY_MODE_ENABLE
+        if(current_buffer->buf_ptr != nullptr){
             memcpy(&real_buffer[total_len], current_buffer->buf_ptr, current_buffer->len);
+        }else{
+#endif
+        memcpy(&real_buffer[total_len], current_buffer->buffer, current_buffer->len);
+#ifdef MYBUF_NON_COPY_MODE_ENABLE
         }
+#endif
 
         total_len += current_buffer->len;
         current_buffer = current_buffer->next_my_buf;
@@ -68,7 +70,7 @@ int net_device_transmit(struct net_device *dev, my_buf* buf){
     printf("\n");
     */
 
-    send(((net_device_data*)dev->data)->fd, real_buffer, total_len, 0);
+    send(((net_device_data*) dev->data)->fd, real_buffer, total_len, 0);
 
     my_buf::my_buf_free(buf, true);
     return 0;
@@ -76,7 +78,7 @@ int net_device_transmit(struct net_device *dev, my_buf* buf){
 
 int net_device_poll(net_device* dev){
     uint8_t buffer[1550];
-    long n = recv(((net_device_data*)dev->data)->fd, buffer, sizeof(buffer), 0);
+    long n = recv(((net_device_data*) dev->data)->fd, buffer, sizeof(buffer), 0);
     if(n == -1){
         if(errno == EAGAIN){
             return 0;

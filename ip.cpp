@@ -25,39 +25,40 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
         return;
     }
 
-    net_device* dev;
-    for(dev = net_dev_list; dev; dev = dev->next){
+    // NAPTすべき通信か判断
+    for(net_device* dev = net_dev_list; dev; dev = dev->next){
         if(dev->ip_dev != nullptr and dev->ip_dev->napt_inside_dev != nullptr and
            dev->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->destination_address)){
+            bool napt_executed = false;
             switch(ip_packet->protocol){
-                case IP_PROTOCOL_TYPE_ICMP:{
+                case IP_PROTOCOL_TYPE_ICMP:
                     if(napt_icmp(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_direction::incoming)){
-                        my_buf* nat_fwd_buf = my_buf::create(0);
-                        nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
-                        nat_fwd_buf->len = len;
-                        ip_output(ntohl(ip_packet->destination_address), nat_fwd_buf);
-                        return;
+                        napt_executed = true;
                     }
-                } break;
-                case IP_PROTOCOL_TYPE_UDP:{
+                    break;
+                case IP_PROTOCOL_TYPE_UDP:
                     if(napt_udp(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_direction::incoming)){
-                        my_buf* nat_fwd_buf = my_buf::create(0);
-                        nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
-                        nat_fwd_buf->len = len;
-                        ip_output(ntohl(ip_packet->destination_address), nat_fwd_buf);
-                        return;
+                        napt_executed = true;
                     }
-                } break;
-                case IP_PROTOCOL_TYPE_TCP:{
-
+                    break;
+                case IP_PROTOCOL_TYPE_TCP:
                     if(napt_tcp(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_direction::incoming)){
-                        my_buf* nat_fwd_buf = my_buf::create(0);
-                        nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
-                        nat_fwd_buf->len = len;
-                        ip_output(ntohl(ip_packet->destination_address), nat_fwd_buf);
-                        return;
+                        napt_executed = true;
                     }
-                } break;
+                    break;
+            }
+            if(napt_executed){
+#ifdef MYBUF_NON_COPY_MODE_ENABLE
+                my_buf* nat_fwd_buf = my_buf::create(0);
+                nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
+                nat_fwd_buf->len = len;
+#else
+                my_buf* nat_fwd_buf = my_buf::create(len);
+                memcpy(nat_fwd_buf->buffer, ip_packet, len);
+                nat_fwd_buf->len = len;
+#endif
+                ip_output(ntohl(ip_packet->destination_address), nat_fwd_buf);
+                return;
             }
         }
     }
@@ -183,9 +184,15 @@ void ip_input(net_device* source_device, uint8_t* buffer, ssize_t len){
         return;
     }
 
+#ifdef MYBUF_NON_COPY_MODE_ENABLE
     my_buf* ip_forward_buf = my_buf::create(0);
     ip_forward_buf->buf_ptr = buffer;
     ip_forward_buf->len = len;
+#else
+    my_buf* ip_forward_buf = my_buf::create(len);
+    memcpy(ip_forward_buf->buffer, buffer, len);
+    ip_forward_buf->len = len;
+#endif
 
     if(route->type == host){
 #if DEBUG_IP > 0

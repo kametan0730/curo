@@ -7,7 +7,7 @@
 #include "my_buf.h"
 #include "utils.h"
 
-uint8_t broadcast_address[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+const uint8_t broadcast_address[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
 

@@ -14,9 +14,9 @@ struct my_buf{
     my_buf* prev_my_buf = nullptr;
     my_buf* next_my_buf = nullptr;
     uint32_t len = 0;
-//#ifdef CURO_ZERO_COPY_MODE_ENABLE
-    uint8_t* buf_ptr = nullptr; //これ本ではなくす?
-//#endif
+#ifdef MYBUF_NON_COPY_MODE_ENABLE
+    uint8_t* buf_ptr = nullptr;
+#endif
     uint8_t buffer[];
 
     /**

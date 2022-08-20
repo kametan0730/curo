@@ -16,7 +16,7 @@
 #define DEBUG_NAT       1
 
 
-//#define CURO_ZERO_COPY_MODE_ENABLE
+#define MYBUF_NON_COPY_MODE_ENABLE
 
 /*
 #define DEBUG_ETHERNET  0
