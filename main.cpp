@@ -195,8 +195,8 @@ int main(){
         }
 
         // インターフェースから通信を受信
-        for(net_device* a = net_dev_list; a; a = a->next){
-            a->ops.poll(a);
+        for(net_device* dev = net_dev_list; dev; dev = dev->next){
+            dev->ops.poll(dev);
         }
     }
 

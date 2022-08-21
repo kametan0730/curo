@@ -349,10 +349,3 @@ napt_entry* create_napt_udp_entry(napt_entries* entries){
     }
     return nullptr;
 }
-
-int napt_incoming(){
-
-
-
-
-}
