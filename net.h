@@ -24,7 +24,7 @@ struct net_device{
     net_device_ops ops;
     ip_device* ip_dev;
     net_device* next;
-    uint8_t data[];
+    void* data;
 };
 
 extern net_device* net_dev_list;

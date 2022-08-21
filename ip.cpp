@@ -40,6 +40,7 @@ void dump_ip_fib(){
 
 void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t len){
 
+    // フラグメントされているかの確認
     if((ntohs(ip_packet->frags_and_offset) & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET) != 0 or
        (ntohs(ip_packet->frags_and_offset) &
         IP_FRAG_AND_OFFSET_FIELD_MASK_MORE_FRAGMENT_FLAG)){
@@ -267,7 +268,7 @@ void ip_output_to_host(net_device* dev, uint32_t src_addr, uint32_t dest_addr, m
         // : Drop packet
         issue_arp_request(dev, dest_addr);
     }else{
-        ethernet_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP);
+        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP);
     }
 }
 
@@ -293,7 +294,7 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
         }
 
     }else{
-        ethernet_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP);
+        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP);
     }
 }
 

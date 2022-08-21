@@ -108,7 +108,8 @@ void issue_arp_request(net_device* device, uint32_t search_ip){
     // memset(arp->tha, 0x00, 6); calloc is good
     arp->tpa = htonl(search_ip);
 
-    ethernet_output_broadcast(device, new_buf, ETHERNET_PROTOCOL_TYPE_ARP);
+    // ethernet_output_broadcast(device, new_buf, ETHERNET_PROTOCOL_TYPE_ARP);
+    ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, new_buf, ETHERNET_PROTOCOL_TYPE_ARP);
 }
 
 
@@ -139,7 +140,7 @@ void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
             memcpy(res_arp->tha, packet->sha, 6);
             res_arp->tpa = packet->spa;
 
-            ethernet_output(dev, packet->sha, res, ETHERNET_PROTOCOL_TYPE_ARP);
+            ethernet_encapsulate_output(dev, packet->sha, res, ETHERNET_PROTOCOL_TYPE_ARP);
             return;
         }
     }

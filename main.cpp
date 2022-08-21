@@ -56,16 +56,6 @@ int net_device_transmit(struct net_device* dev, my_buf* buf){
         current_buffer = current_buffer->next_my_buf;
     }
 
-    /*
-    printf("Send %d bytes\n", total_len);
-
-    for (int i = 0; i < total_len; ++i) {
-        printf("%02x", real_buffer[i]);
-    }
-
-    printf("\n");
-    */
-
     send(((net_device_data*) dev->data)->fd, real_buffer, total_len, 0);
 
     my_buf::my_buf_free(buf, true);
@@ -120,7 +110,7 @@ int main(){
             }
 
             // net_device構造体を作成
-            auto* dev = (net_device*) malloc(sizeof(net_device) + sizeof(net_device_data));
+            auto* dev = (net_device*) calloc(1, sizeof(net_device) + sizeof(net_device_data));
             dev->ops.transmit = net_device_transmit; // 送信用の関数を設定
             dev->ops.poll = net_device_poll; // 受信用の関数を設定
 

@@ -60,7 +60,7 @@ const char* inet_htoa(uint32_t in){
 uint8_t mac_addr_toa_string_pool_index = 0;
 char mac_addr_toa_string_pool[MAC_ADDR_TOA_STRING_POOL_SIZE][20];
 
-const char* mac_addr_toa(uint8_t* addr){
+const char* mac_addr_toa(const uint8_t* addr){
     mac_addr_toa_string_pool_index = (mac_addr_toa_string_pool_index + 1) % MAC_ADDR_TOA_STRING_POOL_SIZE;
     sprintf(mac_addr_toa_string_pool[mac_addr_toa_string_pool_index], "%02x:%02x:%02x:%02x:%02x:%02x", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
     return mac_addr_toa_string_pool[mac_addr_toa_string_pool_index];
