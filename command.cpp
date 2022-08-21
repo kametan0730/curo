@@ -1,6 +1,7 @@
 #include "command.h"
 
 #include "arp.h"
+#include "ip.h"
 #include "napt.h"
 
 void command_input(char c){

@@ -1,3 +1,4 @@
+#include <net/if.h>
 #include "config.h"
 
 #include "binary_trie.h"
@@ -105,4 +106,16 @@ void configure(){
 
     configure_net_route(IP_ADDRESS_FROM_HOST(192, 168, 55, 0), 24, IP_ADDRESS_FROM_HOST(192, 168, 222, 2));
 
+}
+
+bool is_enable_interface(const char* ifname){
+
+    char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
+
+    for(int i = 0; i < sizeof(enable_interfaces) / IF_NAMESIZE; i++){
+        if(strcmp(enable_interfaces[i], ifname) == 0){
+            return true;
+        }
+    }
+    return false;
 }

@@ -3,14 +3,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdint>
-#include <cstddef>
-#include <fstream>
 #include <fcntl.h>
 #include <poll.h>
 #include <unistd.h>
 #include <cerrno>
-#include <unistd.h>
-#include <netinet/ip.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
@@ -25,9 +21,9 @@
 #include "config.h"
 #include "ethernet.h"
 #include "ip.h"
+#include "my_buf.h"
 #include "net.h"
 #include "utils.h"
-#include "my_buf.h"
 
 struct net_device_data{
     int fd;
@@ -51,7 +47,7 @@ int net_device_transmit(struct net_device* dev, my_buf* buf){
             memcpy(&real_buffer[total_len], current_buffer->buf_ptr, current_buffer->len);
         }else{
 #endif
-        memcpy(&real_buffer[total_len], current_buffer->buffer, current_buffer->len);
+            memcpy(&real_buffer[total_len], current_buffer->buffer, current_buffer->len);
 #ifdef MYBUF_NON_COPY_MODE_ENABLE
         }
 #endif
@@ -92,56 +88,48 @@ int net_device_poll(net_device* dev){
 
 int main(){
 
-    typedef void entry_point_function_type(struct ss* arg);
-
     struct ifreq ifr{};
     struct ifaddrs* addrs;
-    bool enable;
 
+    // ネットワークインターフェースを情報を取得
     getifaddrs(&addrs);
 
-    char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
-
     for(ifaddrs* tmp = addrs; tmp; tmp = tmp->ifa_next){
-
         if(tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET){
 
-            enable = false;
-
+            // ioctlでコントロールするインターフェースを設定
             memset(&ifr, 0, sizeof(ifr));
-
             strcpy(ifr.ifr_name, tmp->ifa_name);
 
-            for(int i = 0; i < sizeof(enable_interfaces) / IF_NAMESIZE; i++){
-                if(strcmp(enable_interfaces[i], tmp->ifa_name) == 0){
-                    enable = true;
-                }
-            }
-
-            if(!enable){
+            // 有効化するインターフェースか確認
+            if(!is_enable_interface(tmp->ifa_name)){
                 printf("Skipped to enable interface %s\n", tmp->ifa_name);
                 continue;
             }
 
+            // Socketをオープン
             int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
             if(sock == -1){
                 continue;
             }
 
+            // インターフェースのMACアドレスを取得
             if(ioctl(sock, SIOCGIFHWADDR, &ifr) != 0){
                 close(sock);
                 continue;
             }
 
+            // net_device構造体を作成
             auto* dev = (net_device*) malloc(sizeof(net_device) + sizeof(net_device_data));
-            dev->ops.transmit = net_device_transmit;
-            dev->ops.poll = net_device_poll;
+            dev->ops.transmit = net_device_transmit; // 送信用の関数を設定
+            dev->ops.poll = net_device_poll; // 受信用の関数を設定
 
-            ((net_device_data*) dev->data)->fd = sock;
+            ((net_device_data*) dev->data)->fd = sock; //
             strcpy(dev->ifname, tmp->ifa_name);
 
             memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6);
 
+            // インターフェースのインデックスを取得
             if(ioctl(sock, SIOCGIFINDEX, &ifr) == -1){
                 close(sock);
                 continue;
@@ -158,27 +146,33 @@ int main(){
                 continue;
             }
 
-            printf("Created dev %s sock %d addr %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
+            printf("[DEV] Created dev %s sock %d addr %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
 
+            // 連結させる
             net_device* next;
             next = net_dev_list;
             net_dev_list = dev;
             dev->next = next;
 
-            int val = fcntl(sock, F_GETFL, 0);
-            fcntl(sock, F_SETFL, val | O_NONBLOCK); // ノンブロック
+            // ノンブロッキングに設定
+            int val = fcntl(sock, F_GETFL, 0); // File descriptorのflagを取得
+            fcntl(sock, F_SETFL, val | O_NONBLOCK); // Non blockingのbitをセット
         }
     }
 
+    // 確保されていたメモリを解放
     freeifaddrs(addrs);
 
+    // 1つも有効なインターフェースをが無かったら終了
     if(net_dev_list == nullptr){
         printf("No interface is enabled!\n");
         return 0;
     }
 
+    // IPルーティングテーブルの木構造のrootノードを作成
     ip_fib = (binary_trie_node<ip_route_entry>*) calloc(1, sizeof(binary_trie_node<ip_route_entry>));
 
+    // 設定の投入
     configure();
 
     termios attr{};
@@ -200,6 +194,7 @@ int main(){
             command_input(input);
         }
 
+        // インターフェースから通信を受信
         for(net_device* a = net_dev_list; a; a = a->next){
             a->ops.poll(a);
         }

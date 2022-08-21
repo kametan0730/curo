@@ -33,5 +33,6 @@
 #define ENABLE_INTERFACES {LINK_TO_HOST0, LINK_TO_HOST1}
 
 void configure();
+bool is_enable_interface(const char* ifname);
 
 #endif //CURO_CONFIG_H
