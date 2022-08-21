@@ -46,7 +46,6 @@ void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
     }
 }
 
-
 void ethernet_output_broadcast(net_device* device, my_buf* buffer, uint16_t protocol_type){
 
     my_buf* new_buffer = my_buf::create(ETHERNET_HEADER_SIZE);

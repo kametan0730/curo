@@ -39,7 +39,7 @@ uint16_t calc_checksum_16_my_buf(my_buf* buffer, uint16_t start){
     return ~sum;
 }
 
-uint16_t calc_checksum_16_my_buf_recursive(my_buf* buffer, uint16_t start){ // TODO support pointer my_buf
+uint16_t calc_checksum_16_my_buf_recursive(my_buf* buffer, uint16_t start){ // TODO: Support non copy mode my_buf
 
     my_buf* current_buffer = buffer;
 

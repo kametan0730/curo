@@ -173,11 +173,11 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
         return ip_input_to_ours(src_dev, ip_packet, len);
     }
 
+    // 宛先IPアドレスがルータの持っているIPアドレスの時の処理
     for(net_device* dev = net_dev_list; dev; dev = dev->next){
         if(dev->ip_dev->address != IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)){
             if(htonl(dev->ip_dev->address) == ip_packet->dest_addr){ // TODO ブロードキャストを考慮
-                // go to ours
-                return ip_input_to_ours(dev, ip_packet, len);
+                return ip_input_to_ours(dev, ip_packet, len); // 自分宛の通信として処理
 
             }
         }
@@ -209,7 +209,8 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
     }
 #endif
 
-    ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->dest_addr));
+    //宛先IPアドレスがルータの持っているIPアドレスでない場合はフォワーディングを行う
+    ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->dest_addr)); // ルーティングテーブルをルックアップ
     if(route == nullptr){
 #if DEBUG_IP > 0
         printf("[IP] No route to %s\n", inet_htoa(ntohl(ip_packet->dest_addr)));
