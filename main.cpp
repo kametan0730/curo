@@ -103,6 +103,23 @@ int main(){
                 continue;
             }
 
+            // インターフェースのインデックスを取得
+            if(ioctl(sock, SIOCGIFINDEX, &ifr) == -1){
+                close(sock);
+                continue;
+            }
+
+            // インターフェースをsocketにbindする
+            sockaddr_ll addr{};
+            memset(&addr, 0x00, sizeof(addr));
+            addr.sll_family = AF_PACKET;
+            addr.sll_protocol = htons(ETH_P_ALL);
+            addr.sll_ifindex = ifr.ifr_ifindex;
+            if(bind(sock, (struct sockaddr*) &addr, sizeof(addr)) == -1){
+                close(sock);
+                continue;
+            }
+
             // インターフェースのMACアドレスを取得
             if(ioctl(sock, SIOCGIFHWADDR, &ifr) != 0){
                 close(sock);
@@ -114,27 +131,9 @@ int main(){
             dev->ops.transmit = net_device_transmit; // 送信用の関数を設定
             dev->ops.poll = net_device_poll; // 受信用の関数を設定
 
+            strcpy(dev->ifname, tmp->ifa_name); // net_deviceにインターフェース名をセット
+            memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6); // net_deviceにMACアドレスをセット
             ((net_device_data*) dev->data)->fd = sock; //
-            strcpy(dev->ifname, tmp->ifa_name);
-
-            memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6);
-
-            // インターフェースのインデックスを取得
-            if(ioctl(sock, SIOCGIFINDEX, &ifr) == -1){
-                close(sock);
-                continue;
-            }
-
-            sockaddr_ll addr{};
-            memset(&addr, 0x00, sizeof(addr));
-            addr.sll_family = AF_PACKET;
-            addr.sll_protocol = htons(ETH_P_ALL);
-            addr.sll_ifindex = ifr.ifr_ifindex;
-            if(bind(sock, (struct sockaddr*) &addr, sizeof(addr)) == -1){
-                close(sock);
-                free(dev);
-                continue;
-            }
 
             printf("[DEV] Created dev %s sock %d addr %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
 
@@ -175,8 +174,6 @@ int main(){
 
     fcntl(0, F_SETFL, O_NONBLOCK);
 
-    ssize_t n;
-    unsigned char buf[1550];
     while(true){
 
         char input = getchar();
