@@ -21,7 +21,7 @@ void dump_ip_fib(){
         node_queue.pop();
 
         if(current_node->data != nullptr){
-            if(current_node->data->type == ip_route_type::host){
+            if(current_node->data->type == ip_route_type::connected){
                 printf("%s/%d connected %s\n", inet_htoa(locate_prefix(current_node, ip_fib)), current_node->depth, current_node->data->device->ifname);
             }else{
                 printf("%s/%d nexthop %s\n", inet_htoa(locate_prefix(current_node, ip_fib)), current_node->depth, inet_htoa(current_node->data->next_hop));
@@ -44,12 +44,8 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
     if((ntohs(ip_packet->frags_and_offset) & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET) != 0 or
        (ntohs(ip_packet->frags_and_offset) &
         IP_FRAG_AND_OFFSET_FIELD_MASK_MORE_FRAGMENT_FLAG)){
-#if DEBUG_IP > 0
-        printf("[IP] IP fragment is not supported (offset:%d, more_fragment:%d)",
-               ip_packet->frags_and_offset & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET,
-               ip_packet->frags_and_offset & IP_FRAG_AND_OFFSET_FIELD_MASK_MORE_FRAGMENT_FLAG
-        );
-#endif
+
+        LOG_IP("IP fragment is not supported");
         return;
     }
 
@@ -93,13 +89,10 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
     }
 #endif
 
+    // 上位プロトコルの処理に移行
     switch(ip_packet->protocol){
-
         case IP_PROTOCOL_TYPE_ICMP:
-
-            return icmp_input(ntohl(ip_packet->src_addr),
-                              ntohl(ip_packet->dest_addr),
-                              ((uint8_t*) ip_packet) + IP_HEADER_SIZE, len - IP_HEADER_SIZE);
+            return icmp_input(ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ((uint8_t*) ip_packet) + IP_HEADER_SIZE, len - IP_HEADER_SIZE);
 
         case IP_PROTOCOL_TYPE_UDP:
         case IP_PROTOCOL_TYPE_TCP:
@@ -107,59 +100,38 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
             break;
 
         default:
-#if DEBUG_IP > 0
-            printf("[IP] Unhandled ours ip packet from %s to %s protocol %d",
-                   inet_ntoa(ip_packet->src_addr),
-                   inet_ntoa(ip_packet->dest_addr),
-                   ip_packet->protocol);
-#endif
+            LOG_IP("Unhandled ip protocol %04x", ip_packet->protocol);
             return;
     }
 }
 
 void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
-    bool has_header_option = false;
 
-    if(src_dev->ip_dev == nullptr){
-#if DEBUG_IP > 0
-        printf("[IP] Illegal ip interface\n");
-#endif
+    // IPアドレスのついていないインターフェースからの受信は無視
+    if(src_dev->ip_dev == nullptr or src_dev->ip_dev->address == 0){
         return;
     }
 
-    if(src_dev->ip_dev->address == IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)){
-#if DEBUG_IP > 0
-        printf("[IP] Illegal ip interface\n");
-#endif
+    // IPヘッダ長より短かったらドロップ
+    if(len < sizeof(ip_header)){
+        LOG_IP("IP packet too short");
         return;
     }
-
-    if(len < sizeof(ip_header) + 8){
-#if DEBUG_IP > 0
-        printf("[IP] Illegal ip packet length\n");
-#endif
-        return;
-    }
-
+    // 送られてきたバッファをキャストして扱う
     auto* ip_packet = reinterpret_cast<ip_header*>(buffer);
-#if DEBUG_IP > 0
-    printf("[IP] Received IPv4 type %d from %s to %s\n", ip_packet->protocol, inet_ntoa(ip_packet->src_addr),
+
+    LOG_IP("Received IP packet type %d from %s to %s\n", ip_packet->protocol, inet_ntoa(ip_packet->src_addr),
            inet_ntoa(ip_packet->dest_addr));
-#endif
 
     if(ip_packet->version != 4){
-#if DEBUG_IP > 0
-        printf("[IP] Unknown ip version\n");
-#endif
+        LOG_IP("Incorrect IP version");
         return;
     }
 
+    // IPヘッダオプションがついていたらドロップ
     if(ip_packet->header_len != (sizeof(ip_header) >> 2)){
-#if DEBUG_IP > 0
-        printf("[IP] IP header option is not supported\n");
-#endif
-        has_header_option = true;
-        return; // TODO support
+        LOG_IP("IP header option is not supported");
+        return;
     }
 
     if(ip_packet->ttl <= 1){
@@ -167,23 +139,18 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
         return;
     }
 
-    if(ip_packet->dest_addr == IP_ADDRESS_FROM_HOST(255, 255, 255, 255)){
-#if DEBUG_IP > 0
-        printf("[IP] Broadcast ip packet received\n");
-#endif
+    if(ip_packet->dest_addr == IP_ADDRESS(255, 255, 255, 255)){
         return ip_input_to_ours(src_dev, ip_packet, len);
     }
 
     // 宛先IPアドレスがルータの持っているIPアドレスの時の処理
     for(net_device* dev = net_dev_list; dev; dev = dev->next){
-        if(dev->ip_dev->address != IP_ADDRESS_FROM_NETWORK(0, 0, 0, 0)){
+        if(dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){
             if(htonl(dev->ip_dev->address) == ip_packet->dest_addr){ // TODO ブロードキャストを考慮
                 return ip_input_to_ours(dev, ip_packet, len); // 自分宛の通信として処理
-
             }
         }
     }
-
 
 #ifdef ENABLE_NAPT
     // NAPTの内側から外側への通信
@@ -237,7 +204,7 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
     ip_forward_buf->len = len;
 #endif
 
-    if(route->type == host){
+    if(route->type == connected){
 #if DEBUG_IP > 0
         printf("[IP] Fwd to host\n");
 #endif
@@ -283,7 +250,7 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
 
         ip_route_entry* route_to_next_hop = binary_trie_search(ip_fib, next_hop);
 
-        if(route_to_next_hop == nullptr or route_to_next_hop->type != host){
+        if(route_to_next_hop == nullptr or route_to_next_hop->type != connected){
 #if DEBUG_IP > 0
             printf("[IP] Next hop %s is not reachable\n", inet_htoa(next_hop));
 #endif
@@ -308,7 +275,7 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf* buffer){
         return;
     }
 
-    if(route->type == host){
+    if(route->type == connected){
 #if DEBUG_IP > 0
         printf("[IP] Fwd to host\n");
 #endif
@@ -323,24 +290,24 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf* buffer){
         ip_output_to_next_hop(route->next_hop, buffer);
         return;
     }
-
 }
 
 
-void
-ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf* buffer, uint8_t protocol_type){
-    uint16_t total_len = 0;
+void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf* buffer, uint8_t protocol_type){
 
+    // IPヘッダで必要なIPパケットの全長を算出する
+    uint16_t total_len = 0;
     my_buf* current_buffer = buffer;
     while(current_buffer != nullptr){
-
         total_len += current_buffer->len;
         current_buffer = current_buffer->next_my_buf;
     }
 
+    // IPヘッダ用のバッファを確保する
     my_buf* buf = my_buf::create(IP_HEADER_SIZE);
-    buffer->add_header(buf); // 連結
+    buffer->add_header(buf); // 上位プロトコルのデータにヘッダとして連結する
 
+    // IPヘッダの各項目を設定
     auto* ip_buf = reinterpret_cast<ip_header*>(buf->buffer);
     ip_buf->version = 4;
     ip_buf->header_len = sizeof(ip_header) >> 2;

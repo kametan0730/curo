@@ -32,13 +32,13 @@ void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
                     dev,
                     buffer + ETHERNET_HEADER_SIZE,
                     len - ETHERNET_HEADER_SIZE
-                    );
+                    ); // Ethernetヘッダを外してARP処理へ
         case ETHERNET_PROTOCOL_TYPE_IP: // イーサネットタイプがIPのものだったら
             return ip_input(
                     dev,
                     buffer + ETHERNET_HEADER_SIZE,
                     len - ETHERNET_HEADER_SIZE
-                    );
+                    ); // Ethernetヘッダを外してIP処理へ
         default:
 #if DEBUG_ETHERNET > 0
             printf("[ETHER] Received unhandled ethernet type %04x\n", ethernet_type);

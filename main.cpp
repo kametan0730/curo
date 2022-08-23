@@ -25,6 +25,9 @@
 #include "net.h"
 #include "utils.h"
 
+#define ENABLE_INTERFACES {"router1-host1", "router1-router2"}
+
+
 struct net_device_data{
     int fd;
 };
@@ -64,7 +67,7 @@ int net_device_transmit(struct net_device* dev, my_buf* buf){
 
 int net_device_poll(net_device* dev){
     uint8_t buffer[1550];
-    long n = recv(((net_device_data*) dev->data)->fd, buffer, sizeof(buffer), 0);
+    ssize_t n = recv(((net_device_data*) dev->data)->fd, buffer, sizeof(buffer), 0);
     if(n == -1){
         if(errno == EAGAIN){
             return 0;
@@ -74,6 +77,31 @@ int net_device_poll(net_device* dev){
     }
     ethernet_input(dev, buffer, n);
     return 0;
+}
+
+
+
+void configure(){
+
+    configure_ip("router1-host1", IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
+    configure_ip("router1-router2", IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
+
+    //configure_ip_napt(LINK_TO_HOST1, LINK_TO_HOST0);
+
+    configure_net_route(IP_ADDRESS(192, 168, 2, 2), 24, IP_ADDRESS(192, 168, 0, 2));
+
+}
+
+bool is_enable_interface(const char* ifname){
+
+    char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
+
+    for(int i = 0; i < sizeof(enable_interfaces) / IF_NAMESIZE; i++){
+        if(strcmp(enable_interfaces[i], ifname) == 0){
+            return true;
+        }
+    }
+    return false;
 }
 
 int main(){
@@ -122,6 +150,7 @@ int main(){
 
             // インターフェースのMACアドレスを取得
             if(ioctl(sock, SIOCGIFHWADDR, &ifr) != 0){
+                perror("ioctl: ");
                 close(sock);
                 continue;
             }

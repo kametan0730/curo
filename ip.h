@@ -5,12 +5,11 @@
 #include <queue>
 #include "config.h"
 
-#define IP_ADDRESS_FROM_HOST(A, B, C, D) (A * 0x1000000u + B * 0x10000 + C * 0x100 + D)
-#define IP_ADDRESS_FROM_NETWORK(D, C, B, A) (A * 0x1000000u + B * 0x10000 + C * 0x100 + D)
+#define IP_ADDRESS(A, B, C, D) (A * 0x1000000u + B * 0x10000 + C * 0x100 + D)
 
 #define IP_HEADER_SIZE 20
 
-#define IP_ADDRESS_LIMITED_BROADCAST IP_ADDRESS_FROM_HOST(255, 255, 255, 255)
+#define IP_ADDRESS_LIMITED_BROADCAST IP_ADDRESS(255, 255, 255, 255)
 
 #define IP_PROTOCOL_TYPE_ICMP 0x01
 #define IP_PROTOCOL_TYPE_TCP 0x06
@@ -47,7 +46,7 @@ struct ip_device {
 };
 
 enum ip_route_type{
-    host, network
+    connected, network
 };
 
 struct net_device;

@@ -50,9 +50,9 @@ void configure_ip(const char* interface, uint32_t address, uint32_t netmask){
         }
     }
 
-
+    // IPアドレスを設定すると同時に直接接続ルートを設定する
     ip_route_entry* ire = (ip_route_entry*) calloc(1, sizeof(ip_route_entry));
-    ire->type = host;
+    ire->type = connected;
     ire->device = dev;
 
     int len = 0; // サブネットマスクとプレフィックス長の変換
@@ -88,34 +88,8 @@ void configure_ip_napt(const char* inside_interface, const char* outside_interfa
     inside->ip_dev->napt_inside_dev->entries = (napt_entries*) calloc(1, sizeof(napt_entries));
     inside->ip_dev->napt_inside_dev->outside_address = outside->ip_dev->address;
 
-    //inside->ip_dev->napt_outside_dev = (napt_outside_device *) calloc(1, sizeof(napt_outside_device));
-    //inside->ip_dev->napt_outside_dev->entries = (napt_entries*) calloc(1, sizeof(napt_entries));
-
 #else
     printf("NAPT has not been enabled for this build\n");
 #endif
 
-}
-
-void configure(){
-
-    configure_ip(LINK_TO_HOST0, IP_ADDRESS_FROM_HOST(192, 168, 111, 1), IP_ADDRESS_FROM_HOST(255, 255, 255, 0));
-    configure_ip(LINK_TO_HOST1, IP_ADDRESS_FROM_HOST(192, 168, 222, 1), IP_ADDRESS_FROM_HOST(255, 255, 255, 0));
-
-    //configure_ip_napt(LINK_TO_HOST1, LINK_TO_HOST0);
-
-    configure_net_route(IP_ADDRESS_FROM_HOST(192, 168, 55, 0), 24, IP_ADDRESS_FROM_HOST(192, 168, 222, 2));
-
-}
-
-bool is_enable_interface(const char* ifname){
-
-    char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
-
-    for(int i = 0; i < sizeof(enable_interfaces) / IF_NAMESIZE; i++){
-        if(strcmp(enable_interfaces[i], ifname) == 0){
-            return true;
-        }
-    }
-    return false;
 }

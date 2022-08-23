@@ -122,7 +122,7 @@ void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
      */
     add_arp_table_entry(dev, packet->sha, ntohl(packet->spa));
 
-    if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS_FROM_HOST(0, 0, 0, 0)){
+    if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){
         if(dev->ip_dev->address == ntohl(packet->tpa)){
 #if DEBUG_ARP > 0
             printf("[ARP] ARP matched with %s\n", inet_ntoa(packet->tpa));
