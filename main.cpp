@@ -27,7 +27,6 @@
 
 #define ENABLE_INTERFACES {"router1-host1", "router1-router2"}
 
-
 struct net_device_data{
     int fd;
 };
@@ -80,20 +79,17 @@ int net_device_poll(net_device* dev){
 }
 
 
-
-void configure(){
-
-    configure_ip("router1-host1", IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
-    configure_ip("router1-router2", IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
-
-    //configure_ip_napt(LINK_TO_HOST1, LINK_TO_HOST0);
-
-    configure_net_route(IP_ADDRESS(192, 168, 2, 2), 24, IP_ADDRESS(192, 168, 0, 2));
-
+net_device* get_net_device_by_name(const char* interface){
+    net_device* dev;
+    for(dev = net_dev_list; dev; dev = dev->next){
+        if(strcmp(dev->ifname, interface) == 0){
+            return dev;
+        }
+    }
+    return nullptr;
 }
 
 bool is_enable_interface(const char* ifname){
-
     char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
 
     for(int i = 0; i < sizeof(enable_interfaces) / IF_NAMESIZE; i++){
@@ -104,8 +100,16 @@ bool is_enable_interface(const char* ifname){
     return false;
 }
 
-int main(){
+void configure(){
+    configure_ip(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
+    configure_ip(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
 
+    //configure_ip_napt(LINK_TO_HOST1, LINK_TO_HOST0);
+
+    configure_net_route(IP_ADDRESS(192, 168, 2, 2), 24, IP_ADDRESS(192, 168, 0, 2));
+}
+
+int main(){
     struct ifreq ifr{};
     struct ifaddrs* addrs;
 

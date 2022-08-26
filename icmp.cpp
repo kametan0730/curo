@@ -35,9 +35,9 @@ void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len)
             reply->header.type = ICMP_TYPE_ECHO_REPLY;
             reply->header.code = 0;
             reply->header.checksum = 0;
-            reply->identify = request->identify;
-            reply->sequence = request->sequence;
-            memcpy(&reply->data, &request->data, len - 8);
+            reply->identify = request->identify; // 識別番号をコピー
+            reply->sequence = request->sequence; // シーケンス番号をコピー
+            memcpy(&reply->data, &request->data, len - 8); //
             //reply->header.checksum = calc_checksum_16_my_buf(reply_my_buf);
 
             ip_encapsulate_output(source, destination, reply_my_buf, IP_PROTOCOL_TYPE_ICMP);

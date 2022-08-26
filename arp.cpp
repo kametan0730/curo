@@ -107,9 +107,9 @@ void send_arp_request(net_device* device, uint32_t search_ip){
 }
 
 void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet); // 宣言のみ
-void arp_reply_arrives(net_device* source_interface, arp_ip_to_ethernet* packet); // 宣言のみ
+void arp_reply_arrives(net_device* src_dev, arp_ip_to_ethernet* packet); // 宣言のみ
 
-void arp_input(net_device* source_interface, uint8_t* buffer, ssize_t len){
+void arp_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
 
     auto* packet = reinterpret_cast<arp_ip_to_ethernet*>(buffer);
     uint16_t op = ntohs(packet->op);
@@ -133,10 +133,10 @@ void arp_input(net_device* source_interface, uint8_t* buffer, ssize_t len){
             }
 
             if(op == ARP_OPERATION_CODE_REQUEST){
-                arp_request_arrives(source_interface, packet);
+                arp_request_arrives(src_dev, packet);
 
             }else if(op == ARP_OPERATION_CODE_REPLY){
-                arp_reply_arrives(source_interface, packet);
+                arp_reply_arrives(src_dev, packet);
             }
         }
             break;

@@ -44,5 +44,6 @@ struct arp_ip_to_ethernet{
     uint32_t tpa;
 } __attribute__((packed));
 
-void arp_input(net_device *source_interface,  uint8_t* buffer, ssize_t len);
+void arp_input(net_device* src_dev, uint8_t* buffer, ssize_t len);
+
 #endif //CURO_ARP_H

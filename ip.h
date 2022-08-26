@@ -15,18 +15,18 @@
 #define IP_PROTOCOL_TYPE_TCP 0x06
 #define IP_PROTOCOL_TYPE_UDP 0x11
 
-#define IP_FRAG_AND_OFFSET_FIELD_MASK_RESERVED_FLAG         0b1000000000000000
-#define IP_FRAG_AND_OFFSET_FIELD_MASK_DONT_FRAGMENT_FLAG    0b0100000000000000
-#define IP_FRAG_AND_OFFSET_FIELD_MASK_MORE_FRAGMENT_FLAG    0b0010000000000000
-#define IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET                0b0001111111111111
+#define IP_FRAG_OFFSET_MASK_RESERVED_FLAG         0b1000000000000000
+#define IP_FRAG_OFFSET_MASK_DF_FLAG    0b0100000000000000
+#define IP_FRAG_OFFSET_MASK_MF_FLAG    0b0010000000000000
+#define IP_FRAG_OFFSET_MASK_OFFSET                0b0001111111111111
 
 struct ip_header {
     uint8_t header_len: 4;
     uint8_t version: 4;
     uint8_t tos;
-    uint16_t tlen;
+    uint16_t total_len;
     uint16_t identify;
-    uint16_t frags_and_offset;
+    uint16_t frag_offset;
     uint8_t ttl;
     uint8_t protocol;
     uint16_t header_checksum;
@@ -39,14 +39,14 @@ struct napt_inside_device;
 struct ip_device {
     uint32_t address = 0;
     uint32_t netmask = 0;
-    uint32_t gateway = 0;
 #ifdef ENABLE_NAPT
     napt_inside_device* napt_inside_dev = nullptr;
 #endif
 };
 
 enum ip_route_type{
-    connected, network
+    connected, // 直接接続されているネットワークの経路　
+    network
 };
 
 struct net_device;

@@ -38,14 +38,12 @@ void dump_ip_fib(){
 }
 
 
-void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t len){
+void ip_input_to_ours(net_device* src_dev, ip_header* ip_packet, size_t len){
 
     // フラグメントされているかの確認
-    if((ntohs(ip_packet->frags_and_offset) & IP_FRAG_AND_OFFSET_FIELD_MASK_OFFSET) != 0 or
-       (ntohs(ip_packet->frags_and_offset) &
-        IP_FRAG_AND_OFFSET_FIELD_MASK_MORE_FRAGMENT_FLAG)){
-
-        LOG_IP("IP fragment is not supported");
+    if((ntohs(ip_packet->frag_offset) & IP_FRAG_OFFSET_MASK_OFFSET) != 0 or
+       (ntohs(ip_packet->frag_offset) & IP_FRAG_OFFSET_MASK_MF_FLAG)){
+        LOG_IP("IP fragment is not supported\n");
         return;
     }
 
@@ -290,12 +288,12 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf* buffer
     ip_buf->version = 4;
     ip_buf->header_len = sizeof(ip_header) >> 2;
     ip_buf->tos = 0;
-    ip_buf->tlen = htons(sizeof(ip_header) + total_len);
+    ip_buf->total_len = htons(sizeof(ip_header) + total_len);
     ip_buf->protocol = protocol_type; // 8bit
 
     static uint64_t id = 0;
     ip_buf->identify = id++;
-    ip_buf->frags_and_offset = 0;
+    ip_buf->frag_offset = 0;
     ip_buf->ttl = 0xff;
     ip_buf->header_checksum = 0;
     ip_buf->dest_addr = htonl(dest_addr);
