@@ -73,7 +73,7 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
                     break;
             }
             if(napt_executed){
-#ifdef MYBUF_NON_COPY_MODE_ENABLE
+#ifdef ENABLE_MYBUF_NON_COPY_MODE
                 my_buf* nat_fwd_buf = my_buf::create(0);
                 nat_fwd_buf->buf_ptr = (uint8_t*) ip_packet;
                 nat_fwd_buf->len = len;
@@ -115,9 +115,10 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
 
     // IPヘッダ長より短かったらドロップ
     if(len < sizeof(ip_header)){
-        LOG_IP("IP packet too short");
+        LOG_IP("Received IP packet too short from %s\n", src_dev->ifname);
         return;
     }
+
     // 送られてきたバッファをキャストして扱う
     auto* ip_packet = reinterpret_cast<ip_header*>(buffer);
 
@@ -125,20 +126,22 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
            inet_ntoa(ip_packet->dest_addr));
 
     if(ip_packet->version != 4){
-        LOG_IP("Incorrect IP version");
+        LOG_IP("Incorrect IP version\n");
         return;
     }
 
     // IPヘッダオプションがついていたらドロップ
     if(ip_packet->header_len != (sizeof(ip_header) >> 2)){
-        LOG_IP("IP header option is not supported");
+        LOG_IP("IP header option is not supported\n");
         return;
     }
 
+#ifdef ENABLE_ICMP_ERROR
     if(ip_packet->ttl <= 1){
         send_icmp_time_exceeded(src_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED, buffer);
         return;
     }
+#endif
 
     if(ip_packet->dest_addr == IP_ADDRESS(255, 255, 255, 255)){
         return ip_input_to_ours(src_dev, ip_packet, len);
@@ -190,8 +193,7 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
     ip_packet->header_checksum = 0;
     ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t*>(buffer), sizeof(ip_header));
 
-
-#ifdef MYBUF_NON_COPY_MODE_ENABLE
+#ifdef ENABLE_MYBUF_NON_COPY_MODE
     my_buf* ip_forward_buf = my_buf::create(0);
     ip_forward_buf->buf_ptr = buffer;
     ip_forward_buf->len = len;
@@ -202,13 +204,11 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
 #endif
 
     if(route->type == connected){
-        LOG_IP("Fwd to host\n");
         ip_output_to_host(route->device, ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ip_forward_buf);
         return;
     }
 
     if(route->type == network){
-        LOG_IP("Fwd to net\n");
         ip_output_to_next_hop(route->next_hop, ip_forward_buf);
         return;
     }
@@ -216,40 +216,38 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
 
 void ip_output_to_host(net_device* dev, uint32_t src_addr, uint32_t dest_addr, my_buf* buffer){
 
-    arp_table_entry* entry = search_arp_table_entry(dest_addr);
+    arp_table_entry* entry = search_arp_table_entry(dest_addr); // ARPテーブルの検索
 
-    if(!entry){
+    if(!entry){ // ARPエントリが無かったら
         LOG_IP("Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_addr));
         //send_icmp_destination_unreachable(dev->ip_dev->address, src_addr, ICMP_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE, );
 
-        my_buf::my_buf_free(buffer, true);
-        // : Drop packet
-        issue_arp_request(dev, dest_addr);
+        send_arp_request(dev, dest_addr); // ARPリクエストの送信
+        my_buf::my_buf_free(buffer, true); // Drop packet
+        return;
     }else{
-        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP);
+        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP); // イーサネットでカプセル化して送信
     }
 }
 
 void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
-    arp_table_entry* entry = search_arp_table_entry(next_hop);
+    arp_table_entry* entry = search_arp_table_entry(next_hop); // ARPテーブルの検索
 
-    if(!entry){
+    if(!entry){  // ARPエントリが無かったら
         LOG_IP("Trying ip output to next hop, but no arp record to %s\n", inet_htoa(next_hop));
-        my_buf::my_buf_free(buffer, true);
 
-        ip_route_entry* route_to_next_hop = binary_trie_search(ip_fib, next_hop);
+        ip_route_entry* route_to_next_hop = binary_trie_search(ip_fib, next_hop); // ルーティングテーブルのルックアップ
 
-        if(route_to_next_hop == nullptr or route_to_next_hop->type != connected){
+        if(route_to_next_hop == nullptr or route_to_next_hop->type != connected){ // next hopへの到達性が無かったら
             LOG_IP("Next hop %s is not reachable\n", inet_htoa(next_hop));
-
-            my_buf::my_buf_free(buffer, true);
-
         }else{
-            issue_arp_request(route_to_next_hop->device, next_hop);
+            send_arp_request(route_to_next_hop->device, next_hop); // ARPリクエストを送信
         }
+        my_buf::my_buf_free(buffer, true); // Drop packet
+        return;
 
-    }else{
-        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP);
+    }else{ // ARPエントリがあったら
+        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHERNET_PROTOCOL_TYPE_IP); // イーサネットでカプセル化して送信
     }
 }
 
@@ -258,22 +256,20 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf* buffer){
     ip_route_entry* route = binary_trie_search(ip_fib, dest_addr);
     if(route == nullptr){
         LOG_IP("No route to %s\n", inet_htoa(dest_addr));
+        my_buf::my_buf_free(buffer, true); // Drop packet
         return;
     }
 
     if(route->type == connected){
-        LOG_IP("Fwd to host\n");
         ip_output_to_host(route->device, src_addr, dest_addr, buffer);
         return;
     }
 
     if(route->type == network){
-        LOG_IP("Fwd to net\n");
         ip_output_to_next_hop(route->next_hop, buffer);
         return;
     }
 }
-
 
 void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf* buffer, uint8_t protocol_type){
 
@@ -309,10 +305,11 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf* buffer
     ip_output(src_addr, dest_addr, buf);
 
     /*
-    // for book
+    // for book (IP ルーティング/フォワーディングが実装されてないとき用)
     for(net_device* dev = net_dev_list; dev; dev = dev->next){
-        if(in_subnet(){
-
+        if(dev->ip_dev == nullptr or dev->ip_dev->address == IP_ADDRESS(0, 0, 0, 0)) continue;
+        if(in_subnet_with_mask(dev->ip_dev->address, dev->ip_dev->netmask, dest_addr)){
+            ip_output_to_host(dev, src_addr, dest_addr, buf);
         }
     }
     */

@@ -30,7 +30,7 @@ arp_table_entry* search_arp_table_entry(uint32_t ip_address);
 
 void dump_arp_table_entry();
 
-void issue_arp_request(net_device* device, uint32_t ip);
+void send_arp_request(net_device* device, uint32_t ip);
 
 struct arp_ip_to_ethernet{
     uint16_t htype;

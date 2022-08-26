@@ -85,7 +85,7 @@ void dump_arp_table_entry(){
     printf("|-----------------|-------------------|-------------------|------|\n");
 }
 
-void issue_arp_request(net_device* device, uint32_t search_ip){
+void send_arp_request(net_device* device, uint32_t search_ip){
 
     LOG_ARP("Send arp request via %s\n", device->ifname);
 
@@ -106,42 +106,8 @@ void issue_arp_request(net_device* device, uint32_t search_ip){
     ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, new_buf, ETHERNET_PROTOCOL_TYPE_ARP);
 }
 
-
-void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
-    LOG_ARP("Received arp request packet\n");
-    /**
-     * リクエストからもARPレコードを生成する
-     */
-    add_arp_table_entry(dev, packet->sha, ntohl(packet->spa));
-
-    if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){
-        if(dev->ip_dev->address == ntohl(packet->tpa)){
-            LOG_ARP("ARP matched with %s\n", inet_ntoa(packet->tpa));
-
-            auto* res = my_buf::create(46);
-
-            auto res_arp = reinterpret_cast<arp_ip_to_ethernet*>(res->buffer);
-            res_arp->htype = htons(0x0001);
-            res_arp->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
-            res_arp->hlen = 0x06;
-            res_arp->plen = 0x04;
-            res_arp->op = htons(0x0002);
-            memcpy(res_arp->sha, dev->mac_address, 6);
-            res_arp->spa = htonl(dev->ip_dev->address);
-            memcpy(res_arp->tha, packet->sha, 6);
-            res_arp->tpa = packet->spa;
-
-            ethernet_encapsulate_output(dev, packet->sha, res, ETHERNET_PROTOCOL_TYPE_ARP);
-            return;
-        }
-    }
-}
-
-void arp_reply_arrives(net_device* source_interface, arp_ip_to_ethernet* packet){
-    LOG_ARP("Received arp reply packet %s => %s\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));
-
-    add_arp_table_entry(source_interface, packet->sha, ntohl(packet->spa));
-}
+void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet); // 宣言のみ
+void arp_reply_arrives(net_device* source_interface, arp_ip_to_ethernet* packet); // 宣言のみ
 
 void arp_input(net_device* source_interface, uint8_t* buffer, ssize_t len){
 
@@ -174,5 +140,44 @@ void arp_input(net_device* source_interface, uint8_t* buffer, ssize_t len){
             }
         }
             break;
+    }
+}
+
+void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
+
+    if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
+        if(dev->ip_dev->address == ntohl(packet->tpa)){ // 要求されているアドレスが自分の物だったら
+            LOG_ARP("ARP matched with %s\n", inet_ntoa(packet->tpa));
+
+            auto* res = my_buf::create(46);
+
+            auto res_arp = reinterpret_cast<arp_ip_to_ethernet*>(res->buffer);
+            res_arp->htype = htons(0x0001);
+            res_arp->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
+            res_arp->hlen = 0x06;
+            res_arp->plen = 0x04;
+            res_arp->op = htons(0x0002);
+            memcpy(res_arp->sha, dev->mac_address, 6);
+            res_arp->spa = htonl(dev->ip_dev->address);
+            memcpy(res_arp->tha, packet->sha, 6);
+            res_arp->tpa = packet->spa;
+
+            ethernet_encapsulate_output(dev, packet->sha, res, ETHERNET_PROTOCOL_TYPE_ARP);
+
+            add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); //
+
+            return;
+        }
+    }else{
+        LOG_ARP("ARP request received from device with no IP address: %s\n", dev->ifname);
+    }
+}
+
+void arp_reply_arrives(net_device* dev, arp_ip_to_ethernet* packet){
+    if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
+        LOG_ARP("Added arp table entry by arp reply (%s => %s)\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));
+        add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); // ARPテーブルエントリの追加
+    }else{
+        LOG_ARP("ARP reply received from device with no IP address: %s\n", dev->ifname);
     }
 }

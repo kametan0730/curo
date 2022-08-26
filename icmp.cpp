@@ -10,9 +10,9 @@
 
 void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len){
 
-    // ICMPヘッダ長より
+    // ICMPヘッダ長より短かったら
     if(len < sizeof(icmp_header)){
-
+        LOG_ICMP("Received ICMP packet too short\n");
         return;
     }
 

@@ -14,7 +14,7 @@ struct my_buf{
     my_buf* prev_my_buf = nullptr;
     my_buf* next_my_buf = nullptr;
     uint32_t len = 0;
-#ifdef MYBUF_NON_COPY_MODE_ENABLE
+#ifdef ENABLE_MYBUF_NON_COPY_MODE
     uint8_t* buf_ptr = nullptr;
 #endif
     uint8_t buffer[];

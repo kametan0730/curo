@@ -45,13 +45,13 @@ int net_device_transmit(struct net_device* dev, my_buf* buf){
             return -1;
         }
 
-#ifdef MYBUF_NON_COPY_MODE_ENABLE
+#ifdef ENABLE_MYBUF_NON_COPY_MODE
         if(current_buffer->buf_ptr != nullptr){
             memcpy(&real_buffer[total_len], current_buffer->buf_ptr, current_buffer->len);
         }else{
 #endif
             memcpy(&real_buffer[total_len], current_buffer->buffer, current_buffer->len);
-#ifdef MYBUF_NON_COPY_MODE_ENABLE
+#ifdef ENABLE_MYBUF_NON_COPY_MODE
         }
 #endif
 

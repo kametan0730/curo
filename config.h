@@ -18,9 +18,11 @@
 #define DEBUG_NAT       1
 
 
-#define MYBUF_NON_COPY_MODE_ENABLE
+#define ENABLE_MYBUF_NON_COPY_MODE // パケット転送時にバッファのコピーを削減するか
 
-#define ENABLE_NAPT
+#define ENABLE_NAPT // NAPTを有効にするか
+
+#define ENABLE_ICMP_ERROR // ICMPエラーを送信するか
 
 /*
 #define DEBUG_ETHERNET  0
