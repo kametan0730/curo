@@ -37,7 +37,7 @@ struct arp_ip_to_ethernet{
     uint16_t ptype;
     uint8_t hlen;
     uint8_t plen;
-    uint16_t oper;
+    uint16_t op;
     uint8_t sha[6];
     uint32_t spa;
     uint8_t tha[6];

@@ -96,7 +96,7 @@ void issue_arp_request(net_device* device, uint32_t search_ip){
     arp->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
     arp->hlen = 0x06;
     arp->plen = 0x04;
-    arp->oper = htons(ARP_OPERATION_CODE_REQUEST);
+    arp->op = htons(ARP_OPERATION_CODE_REQUEST);
     memcpy(arp->sha, device->mac_address, 6);
     arp->spa = htonl(device->ip_dev->address);
     // memset(arp->tha, 0x00, 6); calloc is good
@@ -108,7 +108,7 @@ void issue_arp_request(net_device* device, uint32_t search_ip){
 
 
 void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
-    LOG_ARP("[ARP] Received arp request packet\n");
+    LOG_ARP("Received arp request packet\n");
     /**
      * リクエストからもARPレコードを生成する
      */
@@ -116,7 +116,7 @@ void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
 
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){
         if(dev->ip_dev->address == ntohl(packet->tpa)){
-            LOG_ARP("[ARP] ARP matched with %s\n", inet_ntoa(packet->tpa));
+            LOG_ARP("ARP matched with %s\n", inet_ntoa(packet->tpa));
 
             auto* res = my_buf::create(46);
 
@@ -125,7 +125,7 @@ void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
             res_arp->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
             res_arp->hlen = 0x06;
             res_arp->plen = 0x04;
-            res_arp->oper = htons(0x0002);
+            res_arp->op = htons(0x0002);
             memcpy(res_arp->sha, dev->mac_address, 6);
             res_arp->spa = htonl(dev->ip_dev->address);
             memcpy(res_arp->tha, packet->sha, 6);
@@ -138,7 +138,7 @@ void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
 }
 
 void arp_reply_arrives(net_device* source_interface, arp_ip_to_ethernet* packet){
-    LOG_ARP("[ARP] Received arp reply packet %s => %s\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));
+    LOG_ARP("Received arp reply packet %s => %s\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));
 
     add_arp_table_entry(source_interface, packet->sha, ntohl(packet->spa));
 }
@@ -146,30 +146,30 @@ void arp_reply_arrives(net_device* source_interface, arp_ip_to_ethernet* packet)
 void arp_input(net_device* source_interface, uint8_t* buffer, ssize_t len){
 
     auto* packet = reinterpret_cast<arp_ip_to_ethernet*>(buffer);
-    uint16_t oper = ntohs(packet->oper);
+    uint16_t op = ntohs(packet->op);
 
     switch(ntohs(packet->ptype)){
         case ETHERNET_PROTOCOL_TYPE_IP:{
 
             if(sizeof(arp_ip_to_ethernet) > len){
-                LOG_ARP("[ARP] Illegal arp packet length\n");
+                LOG_ARP("Illegal arp packet length\n");
                 return;
             }
 
             if(packet->hlen != 6){
-                LOG_ARP("[ARP] Illegal hardware address length\n");
+                LOG_ARP("Illegal hardware address length\n");
                 return;
             }
 
             if(packet->plen != 4){
-                LOG_ARP("[ARP] Illegal protocol address\n");
+                LOG_ARP("Illegal protocol address\n");
                 return;
             }
 
-            if(oper == ARP_OPERATION_CODE_REQUEST){
+            if(op == ARP_OPERATION_CODE_REQUEST){
                 arp_request_arrives(source_interface, packet);
 
-            }else if(oper == ARP_OPERATION_CODE_REPLY){
+            }else if(op == ARP_OPERATION_CODE_REPLY){
                 arp_reply_arrives(source_interface, packet);
             }
         }

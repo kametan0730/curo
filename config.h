@@ -30,7 +30,7 @@
 */
 
 #if DEBUG_ETHERNET > 0
-#define LOG_ETHERNET(...) printf(__VA_ARGS__)
+#define LOG_ETHERNET(...) printf("[ETHER] ");printf(__VA_ARGS__)
 #else
 #define LOG_ETHERNET(...)
 #endif
@@ -41,7 +41,6 @@
 #define LOG_IP(...)
 #endif
 
-
 #if DEBUG_ARP > 0
 #define LOG_ARP(...) printf("[ARP] ");printf(__VA_ARGS__);
 #else
@@ -49,7 +48,7 @@
 #endif
 
 #if DEBUG_ICMP > 0
-#define LOG_ICMP(...) printf("[ARP] ");printf(__VA_ARGS__);
+#define LOG_ICMP(...) printf("[ICMP] ");printf(__VA_ARGS__);
 #else
 #define LOG_ICMP(...)
 #endif

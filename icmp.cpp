@@ -22,12 +22,12 @@ void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len)
         case ICMP_TYPE_ECHO_REPLY:{
             auto* reply = reinterpret_cast<icmp_echo*>(buffer);
 
-            LOG_ICMP("[ICMP] Received icmp echo reply id %04x seq %d\n", ntohs(reply->identify), ntohs(reply->sequence));
+            LOG_ICMP("Received icmp echo reply id %04x seq %d\n", ntohs(reply->identify), ntohs(reply->sequence));
         }
             break;
         case ICMP_TYPE_ECHO_REQUEST:{
             auto* request = reinterpret_cast<icmp_echo*>(buffer);
-            LOG_ICMP("[ICMP] Received icmp echo request id %04x seq %d\n", ntohs(request->identify), ntohs(request->sequence));
+            LOG_ICMP("Received icmp echo request id %04x seq %d\n", ntohs(request->identify), ntohs(request->sequence));
 
             my_buf* reply_my_buf = my_buf::create(len);
 
@@ -44,7 +44,7 @@ void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len)
         }
             break;
         default:
-        LOG_ICMP("[ICMP] Received unhandled icmp type %d\n", header->type);
+        LOG_ICMP("Received unhandled icmp type %d\n", header->type);
             break;
     }
 }

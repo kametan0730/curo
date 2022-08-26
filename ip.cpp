@@ -13,7 +13,7 @@ binary_trie_node<ip_route_entry>* ip_fib;
 
 void dump_ip_fib(){
     binary_trie_node<ip_route_entry>* current_node;
-    std::queue<binary_trie_node<ip_route_entry>*> node_queue;
+    std::queue < binary_trie_node<ip_route_entry> * > node_queue;
     node_queue.push(ip_fib);
 
     while(!node_queue.empty()){
@@ -100,7 +100,8 @@ void ip_input_to_ours(net_device* source_device, ip_header* ip_packet, size_t le
             break;
 
         default:
-            LOG_IP("Unhandled ip protocol %04x", ip_packet->protocol);
+
+        LOG_IP("Unhandled ip protocol %04x", ip_packet->protocol);
             return;
     }
 }
@@ -168,9 +169,7 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
                 return; // NAPTできないパケットはドロップ
             }
         }else{
-#if DEBUG_IP > 0
-            printf("[IP] NAPT unimplemented packet dropped type=%d\n", ip_packet->protocol);
-#endif
+            LOG_IP("NAPT unimplemented packet dropped type=%d\n", ip_packet->protocol);
             return;
 
         }
@@ -180,9 +179,7 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
     //宛先IPアドレスがルータの持っているIPアドレスでない場合はフォワーディングを行う
     ip_route_entry* route = binary_trie_search(ip_fib, ntohl(ip_packet->dest_addr)); // ルーティングテーブルをルックアップ
     if(route == nullptr){
-#if DEBUG_IP > 0
-        printf("[IP] No route to %s\n", inet_htoa(ntohl(ip_packet->dest_addr)));
-#endif
+        LOG_IP("No route to %s\n", inet_htoa(ntohl(ip_packet->dest_addr)));
         // Drop packet
         return;
     }
@@ -205,17 +202,13 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
 #endif
 
     if(route->type == connected){
-#if DEBUG_IP > 0
-        printf("[IP] Fwd to host\n");
-#endif
+        LOG_IP("Fwd to host\n");
         ip_output_to_host(route->device, ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ip_forward_buf);
         return;
     }
 
     if(route->type == network){
-#if DEBUG_IP > 0
-        printf("[IP] Fwd to net\n");
-#endif
+        LOG_IP("Fwd to net\n");
         ip_output_to_next_hop(route->next_hop, ip_forward_buf);
         return;
     }
@@ -226,9 +219,7 @@ void ip_output_to_host(net_device* dev, uint32_t src_addr, uint32_t dest_addr, m
     arp_table_entry* entry = search_arp_table_entry(dest_addr);
 
     if(!entry){
-#if DEBUG_IP > 0
-        printf("[IP] Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_addr));
-#endif
+        LOG_IP("Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_addr));
         //send_icmp_destination_unreachable(dev->ip_dev->address, src_addr, ICMP_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE, );
 
         my_buf::my_buf_free(buffer, true);
@@ -243,17 +234,14 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer){
     arp_table_entry* entry = search_arp_table_entry(next_hop);
 
     if(!entry){
-#if DEBUG_IP > 0
-        printf("[IP] Trying ip output to next hop, but no arp record to %s\n", inet_htoa(next_hop));
-#endif
+        LOG_IP("Trying ip output to next hop, but no arp record to %s\n", inet_htoa(next_hop));
         my_buf::my_buf_free(buffer, true);
 
         ip_route_entry* route_to_next_hop = binary_trie_search(ip_fib, next_hop);
 
         if(route_to_next_hop == nullptr or route_to_next_hop->type != connected){
-#if DEBUG_IP > 0
-            printf("[IP] Next hop %s is not reachable\n", inet_htoa(next_hop));
-#endif
+            LOG_IP("Next hop %s is not reachable\n", inet_htoa(next_hop));
+
             my_buf::my_buf_free(buffer, true);
 
         }else{
@@ -269,24 +257,18 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf* buffer){
 
     ip_route_entry* route = binary_trie_search(ip_fib, dest_addr);
     if(route == nullptr){
-#if DEBUG_IP > 0
-        printf("[IP] No route to %s\n", inet_htoa(dest_addr));
-#endif
+        LOG_IP("No route to %s\n", inet_htoa(dest_addr));
         return;
     }
 
     if(route->type == connected){
-#if DEBUG_IP > 0
-        printf("[IP] Fwd to host\n");
-#endif
+        LOG_IP("Fwd to host\n");
         ip_output_to_host(route->device, src_addr, dest_addr, buffer);
         return;
     }
 
     if(route->type == network){
-#if DEBUG_IP > 0
-        printf("[IP] Fwd to net\n");
-#endif
+        LOG_IP("Fwd to net\n");
         ip_output_to_next_hop(route->next_hop, buffer);
         return;
     }
