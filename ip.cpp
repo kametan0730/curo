@@ -325,4 +325,13 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf* buffer
     ip_buf->header_checksum = calc_checksum_16_my_buf(buf);
 
     ip_output(src_addr, dest_addr, buf);
+
+    /*
+    // for book
+    for(net_device* dev = net_dev_list; dev; dev = dev->next){
+        if(in_subnet(){
+
+        }
+    }
+    */
 }

@@ -128,11 +128,13 @@ int main(){
             // Socketをオープン
             int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
             if(sock == -1){
+                LOG_ERROR("socket open failed\n");
                 continue;
             }
 
             // インターフェースのインデックスを取得
             if(ioctl(sock, SIOCGIFINDEX, &ifr) == -1){
+                LOG_ERROR("ioctl SIOCGIFINDEX\n");
                 close(sock);
                 continue;
             }
@@ -144,13 +146,14 @@ int main(){
             addr.sll_protocol = htons(ETH_P_ALL);
             addr.sll_ifindex = ifr.ifr_ifindex;
             if(bind(sock, (struct sockaddr*) &addr, sizeof(addr)) == -1){
+                LOG_ERROR("bind failed\n");
                 close(sock);
                 continue;
             }
 
             // インターフェースのMACアドレスを取得
             if(ioctl(sock, SIOCGIFHWADDR, &ifr) != 0){
-                perror("ioctl: ");
+                LOG_ERROR("ioctl SIOCGIFHWADDR failed\n");
                 close(sock);
                 continue;
             }
@@ -181,9 +184,9 @@ int main(){
     // 確保されていたメモリを解放
     freeifaddrs(addrs);
 
-    // 1つも有効なインターフェースをが無かったら終了
+    // 1つも有効化されたインターフェースをが無かったら終了
     if(net_dev_list == nullptr){
-        printf("No interface is enabled!\n");
+        LOG_ERROR("No interface is enabled!\n");
         return 0;
     }
 

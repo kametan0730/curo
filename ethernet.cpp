@@ -19,11 +19,9 @@ void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
         return;
     }
 
-#if DEBUG_ETHERNET > 0
-    printf("[ETHER] Received ethernet frame type %04x from %s to %s\n",
+    LOG_ETHERNET("[ETHER] Received ethernet frame type %04x from %s to %s\n",
            ethernet_type, mac_addr_toa(header->src_address),
            mac_addr_toa(header->dest_address));
-#endif
 
     // イーサネットタイプの値から上位プロトコルを特定する
     switch(ethernet_type){
@@ -40,9 +38,7 @@ void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
                     len - ETHERNET_HEADER_SIZE
                     ); // Ethernetヘッダを外してIP処理へ
         default:
-#if DEBUG_ETHERNET > 0
-            printf("[ETHER] Received unhandled ethernet type %04x\n", ethernet_type);
-#endif
+            LOG_ETHERNET("[ETHER] Received unhandled ethernet type %04x\n", ethernet_type);
             return;
     }
 }
@@ -64,11 +60,9 @@ void ethernet_output_broadcast(net_device* device, my_buf* buffer, uint16_t prot
 */
 
 void ethernet_encapsulate_output(net_device* device, const uint8_t* dest_addr, my_buf* buffer, uint16_t protocol_type){
-#if DEBUG_ETHERNET > 0
-    printf("[ETHER] Sent ethernet frame type %04x from %s to %s\n",
+    LOG_ETHERNET("[ETHER] Sent ethernet frame type %04x from %s to %s\n",
            protocol_type, mac_addr_toa(device->mac_address),
            mac_addr_toa(dest_addr));
-#endif
 
     my_buf* ethernet_header_my_buf = my_buf::create(ETHERNET_HEADER_SIZE);
     auto* ether_header = reinterpret_cast<ethernet_header*>(ethernet_header_my_buf->buffer);

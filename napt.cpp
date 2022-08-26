@@ -6,7 +6,6 @@
 
 void dump_napt_tables(){
 #ifdef ENABLE_NAPT
-    printf("NAT Table\n");
     printf("|-PROTO-|--------SOURCE---------|------DESTINATION------|\n");
     net_device* a;
     for(a = net_dev_list; a; a = a->next){

@@ -8,18 +8,16 @@
 #include "net.h"
 #include "utils.h"
 
-arp_table_entry arp_table[ARP_TABLE_SIZE];
+arp_table_entry arp_table[ARP_TABLE_SIZE]; // グローバル変数にテーブルを保持
 
 void add_arp_table_entry(net_device* device, uint8_t* mac_address, uint32_t ip_address){
-
-    if(ip_address == 0){
+    if(ip_address == IP_ADDRESS(0, 0, 0, 0)){
         return;
     }
 
-    uint16_t index = ip_address % ARP_TABLE_SIZE;
+    arp_table_entry* candidate = &arp_table[ip_address % ARP_TABLE_SIZE];
 
-    arp_table_entry* candidate = &arp_table[index];
-
+    // テーブルに入れられるか確認
     if(candidate->ip_address == 0 or candidate->ip_address == ip_address){ // 想定のHash値に入れられるとき
         memcpy(candidate->mac_address, mac_address, 6);
         candidate->ip_address = ip_address;
@@ -27,8 +25,7 @@ void add_arp_table_entry(net_device* device, uint8_t* mac_address, uint32_t ip_a
         return;
     }
 
-    // だめだったときは、candidateに連結する
-
+    // 入れられなかった場合は、arp_table_entryに連結する
     while(candidate->next != nullptr){
         candidate = candidate->next;
         if(candidate->ip_address == ip_address){
@@ -49,8 +46,7 @@ void add_arp_table_entry(net_device* device, uint8_t* mac_address, uint32_t ip_a
 
 
 arp_table_entry* search_arp_table_entry(uint32_t ip_address){
-    uint16_t index = ip_address % ARP_TABLE_SIZE;
-    arp_table_entry* candidate = &arp_table[index];
+    arp_table_entry* candidate = &arp_table[ip_address % ARP_TABLE_SIZE];
 
     if(candidate->ip_address == ip_address){
         return candidate;
@@ -65,13 +61,12 @@ arp_table_entry* search_arp_table_entry(uint32_t ip_address){
         }
     }
 
-    return nullptr; // Oops
+    return nullptr;
 }
 
 
 void dump_arp_table_entry(){
 
-    printf("ARP Table\n");
     printf("|-----IP ADDR-----|------MAC ADDR-----|-----INTERFACE-----|-INDEX|\n");
 
     for(int i = 0; i < ARP_TABLE_SIZE; ++i){
@@ -92,9 +87,8 @@ void dump_arp_table_entry(){
 
 void issue_arp_request(net_device* device, uint32_t search_ip){
 
-#if DEBUG_ARP > 0
-    printf("[ARP] Send arp request via %s\n", device->ifname);
-#endif
+    LOG_ARP("Send arp request via %s\n", device->ifname);
+
     auto* new_buf = my_buf::create(46);
 
     auto* arp = reinterpret_cast<arp_ip_to_ethernet*>(new_buf->buffer);
@@ -114,9 +108,7 @@ void issue_arp_request(net_device* device, uint32_t search_ip){
 
 
 void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
-#if DEBUG_ARP > 0
-    printf("[ARP] Received arp request packet\n");
-#endif
+    LOG_ARP("[ARP] Received arp request packet\n");
     /**
      * リクエストからもARPレコードを生成する
      */
@@ -124,9 +116,8 @@ void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
 
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){
         if(dev->ip_dev->address == ntohl(packet->tpa)){
-#if DEBUG_ARP > 0
-            printf("[ARP] ARP matched with %s\n", inet_ntoa(packet->tpa));
-#endif
+            LOG_ARP("[ARP] ARP matched with %s\n", inet_ntoa(packet->tpa));
+
             auto* res = my_buf::create(46);
 
             auto res_arp = reinterpret_cast<arp_ip_to_ethernet*>(res->buffer);
@@ -147,9 +138,8 @@ void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
 }
 
 void arp_reply_arrives(net_device* source_interface, arp_ip_to_ethernet* packet){
-#if DEBUG_ARP > 0
-    printf("[ARP] Received arp reply packet %s => %s\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));
-#endif
+    LOG_ARP("[ARP] Received arp reply packet %s => %s\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));
+
     add_arp_table_entry(source_interface, packet->sha, ntohl(packet->spa));
 }
 
@@ -162,23 +152,17 @@ void arp_input(net_device* source_interface, uint8_t* buffer, ssize_t len){
         case ETHERNET_PROTOCOL_TYPE_IP:{
 
             if(sizeof(arp_ip_to_ethernet) > len){
-#if DEBUG_ARP > 0
-                printf("[ARP] Illegal arp packet length");
-#endif
+                LOG_ARP("[ARP] Illegal arp packet length\n");
                 return;
             }
 
             if(packet->hlen != 6){
-#if DEBUG_ARP > 0
-                printf("[ARP] Illegal hardware address length");
-#endif
+                LOG_ARP("[ARP] Illegal hardware address length\n");
                 return;
             }
 
             if(packet->plen != 4){
-#if DEBUG_ARP > 0
-                printf("[ARP] Illegal protocol address");
-#endif
+                LOG_ARP("[ARP] Illegal protocol address\n");
                 return;
             }
 
