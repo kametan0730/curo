@@ -136,13 +136,13 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
 
 #ifdef ENABLE_ICMP_ERROR
     if(ip_packet->ttl <= 1){
-        send_icmp_time_exceeded(src_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED, buffer);
+        send_icmp_time_exceeded(src_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED, buffer, len);
         return;
     }
 #endif
 
-    if(ip_packet->dest_addr == IP_ADDRESS(255, 255, 255, 255)){
-        return ip_input_to_ours(src_dev, ip_packet, len);
+    if(ip_packet->dest_addr == IP_ADDRESS(255, 255, 255, 255)){ // 宛先アドレスがブロードキャストアドレスの場合
+        return ip_input_to_ours(src_dev, ip_packet, len); // 自分宛の通信として処理
     }
 
     // 宛先IPアドレスがルータの持っているIPアドレスの時の処理

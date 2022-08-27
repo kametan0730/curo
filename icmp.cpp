@@ -49,20 +49,39 @@ void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len)
     }
 }
 
-void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void* data){
+void send_icmp_destination_unreachable(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void* data, size_t len){
+    if(len < sizeof(ip_header) + 8){ // パケットが小さすぎる場合
+        return;
+    }
 
-    my_buf* buffer = my_buf::create(sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
+    my_buf* unreachable_my_buf = my_buf::create(sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
+    auto* unreachable = reinterpret_cast<icmp_destination_unreachable*>(unreachable_my_buf->buffer);
 
-    auto* icmp_message = reinterpret_cast<icmp_time_exceeded*>(buffer->buffer);
+    unreachable->header.type = ICMP_TYPE_DESTINATION_UNREACHABLE;
+    unreachable->header.code = code;
+    unreachable->header.checksum = 0;
+    unreachable->unused = 0;
+    memcpy(unreachable->data, data, sizeof(ip_header) + 8);
+    unreachable->header.checksum = calc_checksum_16_my_buf(unreachable_my_buf);
 
-    icmp_message->header.type = ICMP_TYPE_TIME_EXCEEDED;
-    icmp_message->header.code = code;
-    icmp_message->header.checksum = 0;
-    icmp_message->unused = 0;
+    ip_encapsulate_output(dest_addr, src_addr, unreachable_my_buf, IP_PROTOCOL_TYPE_ICMP);
+}
 
-    memcpy(icmp_message->data, data, sizeof(ip_header) + 8);
 
-    icmp_message->header.checksum = calc_checksum_16_my_buf(buffer);
+void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void* data, size_t len){
+    if(len < sizeof(ip_header) + 8){ // パケットが小さすぎる場合
+        return;
+    }
 
-    ip_encapsulate_output(dest_addr, src_addr, buffer, IP_PROTOCOL_TYPE_ICMP);
+    my_buf* time_exceeded_my_buf = my_buf::create(sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
+    auto* time_exceeded = reinterpret_cast<icmp_time_exceeded*>(time_exceeded_my_buf->buffer);
+
+    time_exceeded->header.type = ICMP_TYPE_TIME_EXCEEDED;
+    time_exceeded->header.code = code;
+    time_exceeded->header.checksum = 0;
+    time_exceeded->unused = 0;
+    memcpy(time_exceeded->data, data, sizeof(ip_header) + 8);
+    time_exceeded->header.checksum = calc_checksum_16_my_buf(time_exceeded_my_buf);
+
+    ip_encapsulate_output(dest_addr, src_addr, time_exceeded_my_buf, IP_PROTOCOL_TYPE_ICMP);
 }

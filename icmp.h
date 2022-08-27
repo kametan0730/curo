@@ -44,7 +44,7 @@ struct icmp_time_exceeded{
 } __attribute__((packed));
 
 void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len);
-void send_icmp_destination_unreachable(uint32_t source, uint32_t destination, uint8_t code, void* data);
-void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void* data);
+void send_icmp_destination_unreachable(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void* data, size_t len);
+void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void* data, size_t len);
 
 #endif //CURO_ICMP_H
