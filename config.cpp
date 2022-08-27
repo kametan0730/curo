@@ -12,7 +12,7 @@ void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop
     uint32_t mask = 0xffffffff;
     mask <<= (32 - prefix_len);
 
-    ip_route_entry* ire = static_cast<ip_route_entry*>(calloc(1, sizeof(ip_route_entry)));
+    ip_route_entry *ire = static_cast<ip_route_entry *>(calloc(1, sizeof(ip_route_entry)));
     ire->type = network;
     ire->next_hop = next_hop;
 
@@ -20,19 +20,19 @@ void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop
 
 }
 
-void configure_ip(net_device* dev, uint32_t address, uint32_t netmask){
+void configure_ip(net_device *dev, uint32_t address, uint32_t netmask){
     if(dev == nullptr){
         LOG_ERROR("Configure interface not found\n");
         exit(1);
     }
 
     printf("Set ip address to %s\n", dev->ifname);
-    dev->ip_dev = (ip_device*) calloc(1, sizeof(ip_device));
+    dev->ip_dev = (ip_device *) calloc(1, sizeof(ip_device));
     dev->ip_dev->address = address;
     dev->ip_dev->netmask = netmask;
 
     // IPアドレスを設定すると同時に直接接続ルートを設定する
-    ip_route_entry* ire = (ip_route_entry*) calloc(1, sizeof(ip_route_entry));
+    ip_route_entry *ire = (ip_route_entry *) calloc(1, sizeof(ip_route_entry));
     ire->type = connected;
     ire->device = dev;
 
@@ -49,7 +49,7 @@ void configure_ip(net_device* dev, uint32_t address, uint32_t netmask){
 
 }
 
-void configure_ip_napt(net_device* inside, net_device* outside){
+void configure_ip_napt(net_device *inside, net_device *outside){
 #ifdef ENABLE_NAPT
     if(inside == nullptr or outside == nullptr){
         LOG_ERROR("Failed to configure NAPT %s => %s\n", inside->ifname, outside->ifname);
@@ -61,8 +61,8 @@ void configure_ip_napt(net_device* inside, net_device* outside){
         exit(1);
     }
 
-    inside->ip_dev->napt_inside_dev = (napt_inside_device*) calloc(1, sizeof(napt_inside_device));
-    inside->ip_dev->napt_inside_dev->entries = (napt_entries*) calloc(1, sizeof(napt_entries));
+    inside->ip_dev->napt_inside_dev = (napt_inside_device *) calloc(1, sizeof(napt_inside_device));
+    inside->ip_dev->napt_inside_dev->entries = (napt_entries *) calloc(1, sizeof(napt_entries));
     inside->ip_dev->napt_inside_dev->outside_address = outside->ip_dev->address;
 
 #else

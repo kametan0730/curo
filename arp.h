@@ -18,19 +18,19 @@ struct net_device;
 struct arp_table_entry{
     uint8_t mac_address[6];
     uint32_t ip_address;
-    net_device* device;
+    net_device *device;
     bool is_expired;
     uint64_t expired_at;
-    arp_table_entry* next;
+    arp_table_entry *next;
 };
 
-void add_arp_table_entry(net_device* device, uint8_t* mac_address, uint32_t ip_address);
+void add_arp_table_entry(net_device *device, uint8_t *mac_address, uint32_t ip_address);
 
-arp_table_entry* search_arp_table_entry(uint32_t ip_address);
+arp_table_entry *search_arp_table_entry(uint32_t ip_address);
 
 void dump_arp_table_entry();
 
-void send_arp_request(net_device* device, uint32_t ip);
+void send_arp_request(net_device *device, uint32_t ip);
 
 struct arp_ip_to_ethernet{
     uint16_t htype;
@@ -44,6 +44,6 @@ struct arp_ip_to_ethernet{
     uint32_t tpa;
 } __attribute__((packed));
 
-void arp_input(net_device* src_dev, uint8_t* buffer, ssize_t len);
+void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len);
 
 #endif //CURO_ARP_H

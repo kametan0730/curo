@@ -17,7 +17,7 @@ enum napt_direction{
     outgoing, incoming
 };
 
-struct napt_packet_head {
+struct napt_packet_head{
 
     union{
         struct{ // tcp, udp
@@ -66,26 +66,26 @@ struct napt_entries{
 struct napt_inside_device{
     uint32_t outside_address;
 
-    napt_entries* entries;
+    napt_entries *entries;
 };
 
 void dump_napt_tables();
 
-bool napt_icmp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, napt_direction direction);
-bool napt_udp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, napt_direction direction);
-bool napt_tcp(ip_header* ip_packet, size_t len, napt_inside_device* napt_dev, napt_direction direction);
+bool napt_icmp(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, napt_direction direction);
+bool napt_udp(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, napt_direction direction);
+bool napt_tcp(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, napt_direction direction);
 
-napt_entry* get_napt_icmp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t id);
-napt_entry* get_napt_icmp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t id);
+napt_entry *get_napt_icmp_entry_by_global(napt_entries *entries, uint32_t address, uint16_t id);
+napt_entry *get_napt_icmp_entry_by_local(napt_entries *entries, uint32_t address, uint16_t id);
 
-napt_entry* get_napt_tcp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port);
-napt_entry* get_napt_tcp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port);
+napt_entry *get_napt_tcp_entry_by_global(napt_entries *entries, uint32_t address, uint16_t port);
+napt_entry *get_napt_tcp_entry_by_local(napt_entries *entries, uint32_t address, uint16_t port);
 
-napt_entry* get_napt_udp_entry_by_global(napt_entries* entries, uint32_t address, uint16_t port);
-napt_entry* get_napt_udp_entry_by_local(napt_entries* entries, uint32_t address, uint16_t port);
+napt_entry *get_napt_udp_entry_by_global(napt_entries *entries, uint32_t address, uint16_t port);
+napt_entry *get_napt_udp_entry_by_local(napt_entries *entries, uint32_t address, uint16_t port);
 
-napt_entry* create_napt_icmp_entry(napt_entries* entries);
-napt_entry* create_napt_tcp_entry(napt_entries* entries);
-napt_entry* create_napt_udp_entry(napt_entries* entries);
+napt_entry *create_napt_icmp_entry(napt_entries *entries);
+napt_entry *create_napt_tcp_entry(napt_entries *entries);
+napt_entry *create_napt_udp_entry(napt_entries *entries);
 
 #endif //CURO_NAPT_H

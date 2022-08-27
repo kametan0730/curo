@@ -31,12 +31,12 @@ struct net_device_data{
     int fd;
 };
 
-int net_device_transmit(struct net_device* dev, my_buf* buf){
+int net_device_transmit(struct net_device *dev, my_buf *buf){
 
     uint8_t real_buffer[1550];
     uint16_t total_len = 0;
 
-    my_buf* current_buffer = buf;
+    my_buf *current_buffer = buf;
     while(current_buffer != nullptr){
 
         if(total_len + current_buffer->len > sizeof(real_buffer)){ // Overflowする場合
@@ -58,15 +58,15 @@ int net_device_transmit(struct net_device* dev, my_buf* buf){
         current_buffer = current_buffer->next_my_buf;
     }
 
-    send(((net_device_data*) dev->data)->fd, real_buffer, total_len, 0);
+    send(((net_device_data *) dev->data)->fd, real_buffer, total_len, 0);
 
     my_buf::my_buf_free(buf, true);
     return 0;
 }
 
-int net_device_poll(net_device* dev){
+int net_device_poll(net_device *dev){
     uint8_t buffer[1550];
-    ssize_t n = recv(((net_device_data*) dev->data)->fd, buffer, sizeof(buffer), 0);
+    ssize_t n = recv(((net_device_data *) dev->data)->fd, buffer, sizeof(buffer), 0);
     if(n == -1){
         if(errno == EAGAIN){
             return 0;
@@ -78,7 +78,7 @@ int net_device_poll(net_device* dev){
     return 0;
 }
 
-bool is_enable_interface(const char* ifname){
+bool is_enable_interface(const char *ifname){
     char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
 
     for(int i = 0; i < sizeof(enable_interfaces) / IF_NAMESIZE; i++){
@@ -89,8 +89,8 @@ bool is_enable_interface(const char* ifname){
     return false;
 }
 
-net_device* get_net_device_by_name(const char* interface){ // インターフェース名からデバイスを探す
-    net_device* dev;
+net_device *get_net_device_by_name(const char *interface){ // インターフェース名からデバイスを探す
+    net_device *dev;
     for(dev = net_dev_list; dev; dev = dev->next){
         if(strcmp(dev->ifname, interface) == 0){
             return dev;
@@ -110,12 +110,12 @@ void configure(){
 
 int main(){
     struct ifreq ifr{};
-    struct ifaddrs* addrs;
+    struct ifaddrs *addrs;
 
     // ネットワークインターフェースを情報を取得
     getifaddrs(&addrs);
 
-    for(ifaddrs* tmp = addrs; tmp; tmp = tmp->ifa_next){
+    for(ifaddrs *tmp = addrs; tmp; tmp = tmp->ifa_next){
         if(tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET){
 
             // ioctlでコントロールするインターフェースを設定
@@ -148,7 +148,7 @@ int main(){
             addr.sll_family = AF_PACKET;
             addr.sll_protocol = htons(ETH_P_ALL);
             addr.sll_ifindex = ifr.ifr_ifindex;
-            if(bind(sock, (struct sockaddr*) &addr, sizeof(addr)) == -1){
+            if(bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1){
                 LOG_ERROR("bind failed\n");
                 close(sock);
                 continue;
@@ -162,18 +162,18 @@ int main(){
             }
 
             // net_device構造体を作成
-            auto* dev = (net_device*) calloc(1, sizeof(net_device) + sizeof(net_device_data));
+            auto *dev = (net_device *) calloc(1, sizeof(net_device) + sizeof(net_device_data));
             dev->ops.transmit = net_device_transmit; // 送信用の関数を設定
             dev->ops.poll = net_device_poll; // 受信用の関数を設定
 
             strcpy(dev->ifname, tmp->ifa_name); // net_deviceにインターフェース名をセット
             memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6); // net_deviceにMACアドレスをセット
-            ((net_device_data*) dev->data)->fd = sock; //
+            ((net_device_data *) dev->data)->fd = sock; //
 
             printf("[DEV] Created dev %s sock %d addr %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
 
             // 連結させる
-            net_device* next;
+            net_device *next;
             next = net_dev_list;
             net_dev_list = dev;
             dev->next = next;
@@ -194,7 +194,7 @@ int main(){
     }
 
     // IPルーティングテーブルの木構造のrootノードを作成
-    ip_fib = (binary_trie_node<ip_route_entry>*) calloc(1, sizeof(binary_trie_node<ip_route_entry>));
+    ip_fib = (binary_trie_node<ip_route_entry> *) calloc(1, sizeof(binary_trie_node<ip_route_entry>));
 
     // ネットワーク設定の投入
     configure();
@@ -216,7 +216,7 @@ int main(){
         }
 
         // インターフェースから通信を受信
-        for(net_device* dev = net_dev_list; dev; dev = dev->next){
+        for(net_device *dev = net_dev_list; dev; dev = dev->next){
             dev->ops.poll(dev);
         }
     }

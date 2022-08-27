@@ -8,7 +8,7 @@
 #include "net.h"
 #include "utils.h"
 
-void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len){
+void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len){
 
     // ICMPヘッダ長より短かったら
     if(len < sizeof(icmp_header)){
@@ -16,22 +16,22 @@ void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len)
         return;
     }
 
-    auto* header = reinterpret_cast<icmp_header*>(buffer);
+    auto *header = reinterpret_cast<icmp_header *>(buffer);
 
     switch(header->type){
         case ICMP_TYPE_ECHO_REPLY:{
-            auto* reply = reinterpret_cast<icmp_echo*>(buffer);
+            auto *reply = reinterpret_cast<icmp_echo *>(buffer);
 
             LOG_ICMP("Received icmp echo reply id %04x seq %d\n", ntohs(reply->identify), ntohs(reply->sequence));
         }
             break;
         case ICMP_TYPE_ECHO_REQUEST:{
-            auto* request = reinterpret_cast<icmp_echo*>(buffer);
+            auto *request = reinterpret_cast<icmp_echo *>(buffer);
             LOG_ICMP("Received icmp echo request id %04x seq %d\n", ntohs(request->identify), ntohs(request->sequence));
 
-            my_buf* reply_my_buf = my_buf::create(len);
+            my_buf *reply_my_buf = my_buf::create(len);
 
-            auto* reply = reinterpret_cast<icmp_echo*>(reply_my_buf->buffer);
+            auto *reply = reinterpret_cast<icmp_echo *>(reply_my_buf->buffer);
             reply->header.type = ICMP_TYPE_ECHO_REPLY;
             reply->header.code = 0;
             reply->header.checksum = 0;
@@ -49,13 +49,13 @@ void icmp_input(uint32_t source, uint32_t destination, void* buffer, size_t len)
     }
 }
 
-void send_icmp_destination_unreachable(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void* error_ip_buffer, size_t len){
+void send_icmp_destination_unreachable(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void *error_ip_buffer, size_t len){
     if(len < sizeof(ip_header) + 8){ // パケットが小さすぎる場合
         return;
     }
 
-    my_buf* unreachable_my_buf = my_buf::create(sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
-    auto* unreachable = reinterpret_cast<icmp_destination_unreachable*>(unreachable_my_buf->buffer);
+    my_buf *unreachable_my_buf = my_buf::create(sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
+    auto *unreachable = reinterpret_cast<icmp_destination_unreachable *>(unreachable_my_buf->buffer);
 
     unreachable->header.type = ICMP_TYPE_DESTINATION_UNREACHABLE;
     unreachable->header.code = code;
@@ -68,13 +68,13 @@ void send_icmp_destination_unreachable(uint32_t src_addr, uint32_t dest_addr, ui
 }
 
 
-void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void* error_ip_buffer, size_t len){
+void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void *error_ip_buffer, size_t len){
     if(len < sizeof(ip_header) + 8){ // パケットが小さすぎる場合
         return;
     }
 
-    my_buf* time_exceeded_my_buf = my_buf::create(sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
-    auto* time_exceeded = reinterpret_cast<icmp_time_exceeded*>(time_exceeded_my_buf->buffer);
+    my_buf *time_exceeded_my_buf = my_buf::create(sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
+    auto *time_exceeded = reinterpret_cast<icmp_time_exceeded *>(time_exceeded_my_buf->buffer);
 
     time_exceeded->header.type = ICMP_TYPE_TIME_EXCEEDED;
     time_exceeded->header.code = code;

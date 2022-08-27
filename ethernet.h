@@ -18,8 +18,8 @@ struct ethernet_header{
     uint16_t type;
 } __attribute__((packed));
 
-void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t n);
+void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t n);
 
-void ethernet_encapsulate_output(net_device* device, const uint8_t* dest_addr, my_buf* buffer, uint16_t protocol_type);
+void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, my_buf *buffer, uint16_t protocol_type);
 
 #endif //CURO_ETHERNET_H

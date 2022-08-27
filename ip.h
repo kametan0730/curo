@@ -20,7 +20,7 @@
 #define IP_FRAG_OFFSET_MASK_MF_FLAG    0b0010000000000000
 #define IP_FRAG_OFFSET_MASK_OFFSET                0b0001111111111111
 
-struct ip_header {
+struct ip_header{
     uint8_t header_len: 4;
     uint8_t version: 4;
     uint8_t tos;
@@ -36,11 +36,11 @@ struct ip_header {
 
 struct napt_inside_device;
 
-struct ip_device {
+struct ip_device{
     uint32_t address = 0;
     uint32_t netmask = 0;
 #ifdef ENABLE_NAPT
-    napt_inside_device* napt_inside_dev = nullptr;
+    napt_inside_device *napt_inside_dev = nullptr;
 #endif
 };
 
@@ -54,7 +54,7 @@ struct net_device;
 struct ip_route_entry{
     ip_route_type type;
     union{
-        net_device* device;
+        net_device *device;
         uint32_t next_hop;
     };
 };
@@ -62,19 +62,19 @@ struct ip_route_entry{
 template<typename DATA_TYPE>
 struct binary_trie_node;
 
-extern binary_trie_node<ip_route_entry>* ip_fib;
+extern binary_trie_node<ip_route_entry> *ip_fib;
 
 void dump_ip_fib();
 
 struct net_device;
 
-void ip_input(net_device *src_dev, uint8_t *buffer, ssize_t len);
+void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len);
 
 struct my_buf;
 
-void ip_output_to_host(net_device* dev, uint32_t src_address, uint32_t dest_address, my_buf* buffer);
-void ip_output_to_next_hop(uint32_t next_hop, my_buf* buffer);
-void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf* buffer);
-void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf* buffer, uint8_t protocol_type);
+void ip_output_to_host(net_device *dev, uint32_t src_address, uint32_t dest_address, my_buf *buffer);
+void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer);
+void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer);
+void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *buffer, uint8_t protocol_type);
 
 #endif //CURO_IP_H

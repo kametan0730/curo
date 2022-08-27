@@ -10,12 +10,12 @@
 
 arp_table_entry arp_table[ARP_TABLE_SIZE]; // グローバル変数にテーブルを保持
 
-void add_arp_table_entry(net_device* device, uint8_t* mac_address, uint32_t ip_address){
+void add_arp_table_entry(net_device *device, uint8_t *mac_address, uint32_t ip_address){
     if(ip_address == IP_ADDRESS(0, 0, 0, 0)){
         return;
     }
 
-    arp_table_entry* candidate = &arp_table[ip_address % ARP_TABLE_SIZE];
+    arp_table_entry *candidate = &arp_table[ip_address % ARP_TABLE_SIZE];
 
     // テーブルに入れられるか確認
     if(candidate->ip_address == 0 or candidate->ip_address == ip_address){ // 想定のHash値に入れられるとき
@@ -36,7 +36,7 @@ void add_arp_table_entry(net_device* device, uint8_t* mac_address, uint32_t ip_a
         }
     }
 
-    arp_table_entry* creation = (arp_table_entry*) calloc(1, sizeof(arp_table_entry));
+    arp_table_entry *creation = (arp_table_entry *) calloc(1, sizeof(arp_table_entry));
     memcpy(creation->mac_address, mac_address, 6);
     creation->ip_address = ip_address;
     creation->device = device;
@@ -45,8 +45,8 @@ void add_arp_table_entry(net_device* device, uint8_t* mac_address, uint32_t ip_a
 }
 
 
-arp_table_entry* search_arp_table_entry(uint32_t ip_address){
-    arp_table_entry* candidate = &arp_table[ip_address % ARP_TABLE_SIZE];
+arp_table_entry *search_arp_table_entry(uint32_t ip_address){
+    arp_table_entry *candidate = &arp_table[ip_address % ARP_TABLE_SIZE];
 
     if(candidate->ip_address == ip_address){
         return candidate;
@@ -74,7 +74,7 @@ void dump_arp_table_entry(){
             continue;
         }
 
-        for(arp_table_entry* a = &arp_table[i]; a; a = a->next){
+        for(arp_table_entry *a = &arp_table[i]; a; a = a->next){
             printf("| %15s | %14s | %17s | %04d |\n",
                    inet_htoa(a->ip_address),
                    mac_addr_toa(a->mac_address),
@@ -85,35 +85,35 @@ void dump_arp_table_entry(){
     printf("|-----------------|-------------------|-------------------|------|\n");
 }
 
-void send_arp_request(net_device* device, uint32_t search_ip){
+void send_arp_request(net_device *device, uint32_t search_ip){
     LOG_ARP("Sending arp request via %s for %s\n", device->ifname, inet_htoa(search_ip));
 
-    auto* new_buf = my_buf::create(46);
-    auto* arp = reinterpret_cast<arp_ip_to_ethernet*>(new_buf->buffer);
-    arp->htype = htons(ARP_HTYPE_ETHERNET);
-    arp->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
-    arp->hlen = 0x06;
-    arp->plen = 0x04;
-    arp->op = htons(ARP_OPERATION_CODE_REQUEST);
-    memcpy(arp->sha, device->mac_address, 6);
-    arp->spa = htonl(device->ip_dev->address);
-    arp->tpa = htonl(search_ip);
+    auto *arp_my_buf = my_buf::create(46);
+    auto *arp_buf = reinterpret_cast<arp_ip_to_ethernet *>(arp_my_buf->buffer);
+    arp_buf->htype = htons(ARP_HTYPE_ETHERNET);
+    arp_buf->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
+    arp_buf->hlen = 0x06;
+    arp_buf->plen = 0x04;
+    arp_buf->op = htons(ARP_OPERATION_CODE_REQUEST);
+    memcpy(arp_buf->sha, device->mac_address, 6);
+    arp_buf->spa = htonl(device->ip_dev->address);
+    arp_buf->tpa = htonl(search_ip);
 
-    ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, new_buf, ETHERNET_PROTOCOL_TYPE_ARP);
+    ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, arp_my_buf, ETHERNET_PROTOCOL_TYPE_ARP);
 }
 
-void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet); // 宣言のみ
-void arp_reply_arrives(net_device* src_dev, arp_ip_to_ethernet* packet); // 宣言のみ
+void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet); // 宣言のみ
+void arp_reply_arrives(net_device *dev, arp_ip_to_ethernet *packet); // 宣言のみ
 
-void arp_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
+void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
-    auto* packet = reinterpret_cast<arp_ip_to_ethernet*>(buffer);
+    auto *packet = reinterpret_cast<arp_ip_to_ethernet *>(buffer);
     uint16_t op = ntohs(packet->op);
 
     switch(ntohs(packet->ptype)){
         case ETHERNET_PROTOCOL_TYPE_IP:{
 
-            if(sizeof(arp_ip_to_ethernet) > len){
+            if(len < sizeof(arp_ip_to_ethernet)){
                 LOG_ARP("Illegal arp packet length\n");
                 return;
             }
@@ -129,38 +129,37 @@ void arp_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
             }
 
             if(op == ARP_OPERATION_CODE_REQUEST){
-                arp_request_arrives(src_dev, packet);
+                arp_request_arrives(input_dev, packet);
 
             }else if(op == ARP_OPERATION_CODE_REPLY){
-                arp_reply_arrives(src_dev, packet);
+                arp_reply_arrives(input_dev, packet);
             }
         }
             break;
     }
 }
 
-void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
+void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet){
 
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
         if(dev->ip_dev->address == ntohl(packet->tpa)){ // 要求されているアドレスが自分の物だったら
             LOG_ARP("Sending arp reply via %s\n", inet_ntoa(packet->tpa));
 
-            auto* res_my_buf = my_buf::create(46);
+            auto *reply_my_buf = my_buf::create(46);
 
-            auto res_arp = reinterpret_cast<arp_ip_to_ethernet*>(res_my_buf->buffer);
-            res_arp->htype = htons(ARP_HTYPE_ETHERNET);
-            res_arp->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
-            res_arp->hlen = 0x06; // IPアドレスの長さ
-            res_arp->plen = 0x04; // MACアドレスの長さ
-            res_arp->op = htons(ARP_OPERATION_CODE_REPLY);
-            memcpy(res_arp->sha, dev->mac_address, 6);
-            res_arp->spa = htonl(dev->ip_dev->address);
-            memcpy(res_arp->tha, packet->sha, 6);
-            res_arp->tpa = packet->spa;
+            auto reply_buf = reinterpret_cast<arp_ip_to_ethernet *>(reply_my_buf->buffer);
+            reply_buf->htype = htons(ARP_HTYPE_ETHERNET);
+            reply_buf->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
+            reply_buf->hlen = 0x06; // IPアドレスの長さ
+            reply_buf->plen = 0x04; // MACアドレスの長さ
+            reply_buf->op = htons(ARP_OPERATION_CODE_REPLY);
+            memcpy(reply_buf->sha, dev->mac_address, 6);
+            reply_buf->spa = htonl(dev->ip_dev->address);
+            memcpy(reply_buf->tha, packet->sha, 6);
+            reply_buf->tpa = packet->spa;
 
-            ethernet_encapsulate_output(dev, packet->sha, res_my_buf, ETHERNET_PROTOCOL_TYPE_ARP);
-
-            add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); //
+            ethernet_encapsulate_output(dev, packet->sha, reply_my_buf, ETHERNET_PROTOCOL_TYPE_ARP);
+            add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); // ARPリクエストからもエントリを生成
             return;
         }
     }else{
@@ -168,7 +167,7 @@ void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
     }
 }
 
-void arp_reply_arrives(net_device* dev, arp_ip_to_ethernet* packet){
+void arp_reply_arrives(net_device *dev, arp_ip_to_ethernet *packet){
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
         LOG_ARP("Added arp table entry by arp reply (%s => %s)\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));
         add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); // ARPテーブルエントリの追加
