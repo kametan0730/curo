@@ -86,11 +86,9 @@ void dump_arp_table_entry(){
 }
 
 void send_arp_request(net_device* device, uint32_t search_ip){
-
-    LOG_ARP("Send arp request via %s\n", device->ifname);
+    LOG_ARP("Sending arp request via %s for %s\n", device->ifname, inet_htoa(search_ip));
 
     auto* new_buf = my_buf::create(46);
-
     auto* arp = reinterpret_cast<arp_ip_to_ethernet*>(new_buf->buffer);
     arp->htype = htons(ARP_HTYPE_ETHERNET);
     arp->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
@@ -99,10 +97,8 @@ void send_arp_request(net_device* device, uint32_t search_ip){
     arp->op = htons(ARP_OPERATION_CODE_REQUEST);
     memcpy(arp->sha, device->mac_address, 6);
     arp->spa = htonl(device->ip_dev->address);
-    // memset(arp->tha, 0x00, 6); calloc is good
     arp->tpa = htonl(search_ip);
 
-    // ethernet_output_broadcast(device, new_buf, ETHERNET_PROTOCOL_TYPE_ARP);
     ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, new_buf, ETHERNET_PROTOCOL_TYPE_ARP);
 }
 
@@ -128,7 +124,7 @@ void arp_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
             }
 
             if(packet->plen != 4){
-                LOG_ARP("Illegal protocol address\n");
+                LOG_ARP("Illegal protocol address length\n");
                 return;
             }
 
@@ -147,25 +143,24 @@ void arp_request_arrives(net_device* dev, arp_ip_to_ethernet* packet){
 
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
         if(dev->ip_dev->address == ntohl(packet->tpa)){ // 要求されているアドレスが自分の物だったら
-            LOG_ARP("ARP matched with %s\n", inet_ntoa(packet->tpa));
+            LOG_ARP("Sending arp reply via %s\n", inet_ntoa(packet->tpa));
 
-            auto* res = my_buf::create(46);
+            auto* res_my_buf = my_buf::create(46);
 
-            auto res_arp = reinterpret_cast<arp_ip_to_ethernet*>(res->buffer);
-            res_arp->htype = htons(0x0001);
+            auto res_arp = reinterpret_cast<arp_ip_to_ethernet*>(res_my_buf->buffer);
+            res_arp->htype = htons(ARP_HTYPE_ETHERNET);
             res_arp->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
-            res_arp->hlen = 0x06;
-            res_arp->plen = 0x04;
-            res_arp->op = htons(0x0002);
+            res_arp->hlen = 0x06; // IPアドレスの長さ
+            res_arp->plen = 0x04; // MACアドレスの長さ
+            res_arp->op = htons(ARP_OPERATION_CODE_REPLY);
             memcpy(res_arp->sha, dev->mac_address, 6);
             res_arp->spa = htonl(dev->ip_dev->address);
             memcpy(res_arp->tha, packet->sha, 6);
             res_arp->tpa = packet->spa;
 
-            ethernet_encapsulate_output(dev, packet->sha, res, ETHERNET_PROTOCOL_TYPE_ARP);
+            ethernet_encapsulate_output(dev, packet->sha, res_my_buf, ETHERNET_PROTOCOL_TYPE_ARP);
 
             add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); //
-
             return;
         }
     }else{
