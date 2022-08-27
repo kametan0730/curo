@@ -1,3 +1,4 @@
+#!/bin/make
 OUTDIR	= ./build
 TARGET	= $(OUTDIR)/curo
 SOURCES	= $(wildcard *.cpp)

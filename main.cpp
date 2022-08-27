@@ -196,18 +196,17 @@ int main(){
     // IPルーティングテーブルの木構造のrootノードを作成
     ip_fib = (binary_trie_node<ip_route_entry>*) calloc(1, sizeof(binary_trie_node<ip_route_entry>));
 
-    // 設定の投入
+    // ネットワーク設定の投入
     configure();
 
+    // 入力時にバッファリングせずにすぐ受け取る設定
     termios attr{};
     tcgetattr(0, &attr);
-
     attr.c_lflag &= ~(ECHO | ICANON);
     attr.c_cc[VTIME] = 0;
     attr.c_cc[VMIN] = 1;
     tcsetattr(0, TCSANOW, &attr);
-
-    fcntl(0, F_SETFL, O_NONBLOCK);
+    fcntl(0, F_SETFL, O_NONBLOCK); // 標準入力にノンブロッキングの設定
 
     while(true){
 

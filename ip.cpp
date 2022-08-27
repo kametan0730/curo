@@ -216,8 +216,7 @@ void ip_output_to_host(net_device* dev, uint32_t src_addr, uint32_t dest_addr, m
 
     if(!entry){ // ARPエントリが無かったら
         LOG_IP("Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_addr));
-        //send_icmp_destination_unreachable(dev->ip_dev->address, src_addr, ICMP_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE, );
-
+        send_icmp_destination_unreachable(dev->ip_dev->address, src_addr, ICMP_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE, buffer->buf_ptr, 100);
         send_arp_request(dev, dest_addr); // ARPリクエストの送信
         my_buf::my_buf_free(buffer, true); // Drop packet
         return;
