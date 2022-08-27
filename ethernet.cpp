@@ -43,28 +43,12 @@ void ethernet_input(net_device* dev, uint8_t* buffer, ssize_t len){
     }
 }
 
-/*
-void ethernet_output_broadcast(net_device* device, my_buf* buffer, uint16_t protocol_type){
-
-    my_buf* new_buffer = my_buf::create(ETHERNET_HEADER_SIZE);
-    auto* header = reinterpret_cast<ethernet_header*>(new_buffer->buffer);
-
-    memcpy(&header->src_address, &device->mac_address, 6);
-    memset(&header->dest_address, 0xff, 6);
-    header->type = htons(protocol_type);
-
-    buffer->add_header(new_buffer);
-
-    device->ops.transmit(device, new_buffer);
-}
-*/
-
-void ethernet_encapsulate_output(net_device* device, const uint8_t* dest_addr, my_buf* buffer, uint16_t protocol_type){
+void ethernet_encapsulate_output(net_device* device, const uint8_t* dest_addr, my_buf* upper_layer_buffer, uint16_t protocol_type){
     LOG_ETHERNET("Sent ethernet frame type %04x from %s to %s\n",
            protocol_type, mac_addr_toa(device->mac_address),
            mac_addr_toa(dest_addr));
 
-    my_buf* ethernet_header_my_buf = my_buf::create(ETHERNET_HEADER_SIZE);
+    my_buf* ethernet_header_my_buf = my_buf::create(ETHERNET_HEADER_SIZE); // イーサネットヘッダ長分のバッファを確保
     auto* ether_header = reinterpret_cast<ethernet_header*>(ethernet_header_my_buf->buffer);
 
     // イーサネットヘッダの設定
@@ -72,10 +56,10 @@ void ethernet_encapsulate_output(net_device* device, const uint8_t* dest_addr, m
     memcpy(ether_header->dest_address, dest_addr, 6); // `宛先アドレスの設定
     ether_header->type = htons(protocol_type); // イーサネットタイプの設定
 
-    buffer->add_header(ethernet_header_my_buf); // 上位プロトコルから受け取ったバッファにヘッダをつける
+    upper_layer_buffer->add_header(ethernet_header_my_buf); // 上位プロトコルから受け取ったバッファにヘッダをつける
 
 #if DEBUG_ETHERNET > 1
-    printf("[ETHER] Output ");
+    printf("[ETHER] Transmit buffer: ");
     for (int i = 0; i < ethernet_header_my_buf->len; ++i) {
         printf("%02x", ethernet_header_my_buf->buffer[i]);
     }

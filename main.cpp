@@ -78,17 +78,6 @@ int net_device_poll(net_device* dev){
     return 0;
 }
 
-
-net_device* get_net_device_by_name(const char* interface){
-    net_device* dev;
-    for(dev = net_dev_list; dev; dev = dev->next){
-        if(strcmp(dev->ifname, interface) == 0){
-            return dev;
-        }
-    }
-    return nullptr;
-}
-
 bool is_enable_interface(const char* ifname){
     char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
 
@@ -98,6 +87,16 @@ bool is_enable_interface(const char* ifname){
         }
     }
     return false;
+}
+
+net_device* get_net_device_by_name(const char* interface){ // インターフェース名からデバイスを探す
+    net_device* dev;
+    for(dev = net_dev_list; dev; dev = dev->next){
+        if(strcmp(dev->ifname, interface) == 0){
+            return dev;
+        }
+    }
+    return nullptr;
 }
 
 void configure(){

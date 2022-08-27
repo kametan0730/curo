@@ -204,9 +204,7 @@ void ip_input(net_device* src_dev, uint8_t* buffer, ssize_t len){
     if(route->type == connected){
         ip_output_to_host(route->device, ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ip_forward_buf);
         return;
-    }
-
-    if(route->type == network){
+    }else if(route->type == network){
         ip_output_to_next_hop(route->next_hop, ip_forward_buf);
         return;
     }
@@ -261,9 +259,7 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf* buffer){
     if(route->type == connected){
         ip_output_to_host(route->device, src_addr, dest_addr, buffer);
         return;
-    }
-
-    if(route->type == network){
+    }else if(route->type == network){
         ip_output_to_next_hop(route->next_hop, buffer);
         return;
     }
