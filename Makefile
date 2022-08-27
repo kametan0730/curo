@@ -8,7 +8,11 @@ all: $(TARGET)
 
 .PHONY: clean
 clean:
-	rm -rf $(OBJECTS) $(TARGET)
+	$(RM) $(OBJECTS) $(TARGET)
+
+.PHONY: run
+run: $(TARGET)
+	./build/curo
 
 $(TARGET): $(OBJECTS) Makefile
 	$(CXX) -o $(TARGET) $(OBJECTS)
