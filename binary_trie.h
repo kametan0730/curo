@@ -48,22 +48,26 @@ template<typename DATA_TYPE>
 DATA_TYPE *binary_trie_search(binary_trie_node<DATA_TYPE> *root, uint32_t prefix){ // 検索
 
     binary_trie_node<DATA_TYPE> *current = root; // ルートノードから辿る
+    DATA_TYPE* result = nullptr;
 
     // 検索するIPアドレスと比較して1ビットずつ辿っていく
     for(int i = 1; i <= IP_BIT_LEN; ++i){
+        if(current->data != nullptr){
+            result = current->data;
+        }
         if((prefix >> (IP_BIT_LEN - i)) & 0x01){ // 上からiビット目が1だったら
             if(current->node_1 == nullptr){
-                return current->data;
+                return result;
             }
             current = current->node_1;
         }else{ // 1ビット目が0だったら
             if(current->node_0 == nullptr){
-                return current->data;
+                return result;
             }
             current = current->node_0;
         }
     }
-    return current->data;
+    return result;
 }
 
 template<typename DATA_TYPE>
