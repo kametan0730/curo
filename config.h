@@ -55,6 +55,12 @@
 #define LOG_ICMP(...)
 #endif
 
+#if DEBUG_NAT > 0
+#define LOG_NAT(...) printf("[NAT] ");printf(__VA_ARGS__);
+#else
+#define LOG_NAT(...)
+#endif
+
 #define LOG_ERROR(...) printf("[ERROR %s:%d] ", __FILE__, __LINE__);printf(__VA_ARGS__);
 
 struct net_device;
