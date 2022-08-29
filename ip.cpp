@@ -54,18 +54,18 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
            dev->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->dest_addr)){
             bool napt_executed = false;
             switch(ip_packet->protocol){
-                case IP_PROTOCOL_TYPE_ICMP:
-                    if(napt_icmp(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_direction::incoming)){
-                        napt_executed = true;
-                    }
-                    break;
                 case IP_PROTOCOL_TYPE_UDP:
-                    if(napt_udp(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_direction::incoming)){
+                    if(napt_exec(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_protocol::udp, napt_direction::incoming)){
                         napt_executed = true;
                     }
                     break;
                 case IP_PROTOCOL_TYPE_TCP:
-                    if(napt_tcp(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_direction::incoming)){
+                    if(napt_exec(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_protocol::tcp, napt_direction::incoming)){
+                        napt_executed = true;
+                    }
+                    break;
+                case IP_PROTOCOL_TYPE_ICMP:
+                    if(napt_exec(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_protocol::icmp, napt_direction::incoming)){
                         napt_executed = true;
                     }
                     break;
@@ -157,16 +157,16 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 #ifdef ENABLE_NAPT
     // NAPTの内側から外側への通信
     if(input_dev->ip_dev->napt_inside_dev != nullptr){
-        if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){ // NAPTの対象
-            if(!napt_tcp(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_direction::outgoing)){
+        if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){ // NAPTの対象
+            if(!napt_exec(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_protocol::udp, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ
             }
-        }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){
-            if(!napt_udp(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_direction::outgoing)){
+        }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
+            if(!napt_exec(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_protocol::tcp, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ
             }
         }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_ICMP){
-            if(!napt_icmp(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_direction::outgoing)){
+            if(!napt_exec(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_protocol::icmp, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ
             }
         }else{
