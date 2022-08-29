@@ -188,6 +188,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     // TTLを1へらす
     ip_packet->ttl--;
 
+    // IPヘッダチェックサムの再計算
     ip_packet->header_checksum = 0;
     ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t *>(buffer), sizeof(ip_header));
 
@@ -196,16 +197,17 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     ip_forward_buf->buf_ptr = buffer;
     ip_forward_buf->len = len;
 #else
+    // my_buf構造にコピー
     my_buf* ip_forward_buf = my_buf::create(len);
     memcpy(ip_forward_buf->buffer, buffer, len);
     ip_forward_buf->len = len;
 #endif
 
-    if(route->type == connected){
-        ip_output_to_host(route->device, ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ip_forward_buf);
+    if(route->type == connected){ // 直接接続ネットワークの経路なら
+        ip_output_to_host(route->device, ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ip_forward_buf); // hostに直接送信
         return;
-    }else if(route->type == network){
-        ip_output_to_next_hop(route->next_hop, ip_forward_buf);
+    }else if(route->type == network){ // 直接接続ネットワークの経路ではなかったら
+        ip_output_to_next_hop(route->next_hop, ip_forward_buf); // next hopに送信
         return;
     }
 }
