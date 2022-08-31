@@ -156,7 +156,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
 #ifdef ENABLE_NAPT
     // NAPTの内側から外側への通信
-    if(input_dev->ip_dev->napt_inside_dev != nullptr){
+    if(input_dev->ip_dev->napt_inside_dev != nullptr){ // TODO これNATしないLAN内通信できない?
         if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){ // NAPTの対象
             if(!napt_exec(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_protocol::udp, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ

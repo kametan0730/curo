@@ -37,7 +37,7 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
                     buffer + ETHERNET_HEADER_SIZE,
                     len - ETHERNET_HEADER_SIZE
             ); // Ethernetヘッダを外してIP処理へ
-        default:
+        default: // 知らないイーサネットタイプだったら
         LOG_ETHERNET("Received unhandled ethernet type %04x\n", ethernet_type);
             return;
     }

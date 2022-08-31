@@ -166,10 +166,9 @@ bool napt_exec(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, n
 
 napt_entry *get_napt_entry_by_global(napt_entries *entries, napt_protocol proto, uint32_t address, uint16_t port){
 
-
     if(proto == napt_protocol::udp){
         if(entries->udp[port - NAPT_GLOBAL_PORT_MIN].global_address == address and entries->udp[port - NAPT_GLOBAL_PORT_MIN].global_port == port){
-            return &entries->udp[port] - NAPT_GLOBAL_PORT_MIN;
+            return &entries->udp[port - NAPT_GLOBAL_PORT_MIN];
         }
     }else if(proto == napt_protocol::tcp){
         if(entries->tcp[port - NAPT_GLOBAL_PORT_MIN].global_address == address and entries->tcp[port - NAPT_GLOBAL_PORT_MIN].global_port == port){

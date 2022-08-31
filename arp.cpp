@@ -130,7 +130,6 @@ void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
             if(op == ARP_OPERATION_CODE_REQUEST){
                 arp_request_arrives(input_dev, packet);
-
             }else if(op == ARP_OPERATION_CODE_REPLY){
                 arp_reply_arrives(input_dev, packet);
             }
