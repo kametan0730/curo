@@ -7,6 +7,12 @@
 #include "my_buf.h"
 #include "utils.h"
 
+/**
+ * イーサネットの受信処理
+ * @param dev 受信したデバイス
+ * @param buffer 受信したデータのバイト列
+ * @param len 受信したデータの長さ
+ */
 void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
 
     // 送られてきた通信をイーサネットのフレームとして解釈する
@@ -43,6 +49,13 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
     }
 }
 
+/**
+ * イーサネットにカプセル化して送信
+ * @param device 送信するデバイス
+ * @param dest_addr 宛先アドレス
+ * @param upper_layer_buffer
+ * @param protocol_type
+ */
 void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, my_buf *upper_layer_buffer, uint16_t protocol_type){
     LOG_ETHERNET("Sent ethernet frame type %04x from %s to %s\n",
                  protocol_type, mac_addr_toa(device->mac_address),

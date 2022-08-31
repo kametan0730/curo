@@ -4,6 +4,9 @@
 #include "net.h"
 #include "my_buf.h"
 
+/**
+ * NATテーブルを出力する
+ */
 void dump_napt_tables(){
 #ifdef ENABLE_NAPT
     printf("|-PROTO-|--------SOURCE---------|------DESTINATION------|\n");
@@ -47,9 +50,16 @@ void dump_napt_tables(){
 #endif
 }
 
-
+/**
+ * NATのアドレス変換を実行する
+ * @param ip_packet　アドレス変換を行うパケット
+ * @param len アドレス変換を行うパケットの残りの長さ
+ * @param napt_dev NATデバイス
+ * @param proto IPプロトコルタイプ(UDP,TCP,ICMPのみ対応)
+ * @param direction NATの方向
+ * @return NATが成功したかどうか
+ */
 bool napt_exec(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, napt_protocol proto, napt_direction direction){
-
     auto *napt_packet = (napt_packet_head *) ((uint8_t *) ip_packet + sizeof(ip_header));
 
     // ICMPだったら、クエリーパケットのみNATする
@@ -68,7 +78,7 @@ bool napt_exec(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, n
         if(entry == nullptr){ // NAPTエントリが登録されていない場合、falseを返す
             return false;
         }
-    }else{ //  // NATの内から外の通信の時
+    }else{ // NATの内から外の通信の時
         if(proto == napt_protocol::icmp){ // ICMP
             entry = get_napt_entry_by_local(napt_dev->entries, proto, ntohl(ip_packet->src_addr), ntohs(napt_packet->icmp.identify));
         }else{ // TCP/UDP
@@ -159,14 +169,22 @@ bool napt_exec(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, n
 
     // IPヘッダのヘッダチェックサムの再計算
     ip_packet->header_checksum = 0;
-    ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t *>(ip_packet), sizeof(ip_header));
+    ip_packet->header_checksum = checksum_16(reinterpret_cast<uint16_t *>(ip_packet), sizeof(ip_header));
 
     return true;
 }
 
+/**
+ * グローバルアドレスとグローバルポートからNATエントリを取得
+ * @param entries
+ * @param proto
+ * @param address
+ * @param port
+ * @return
+ */
 napt_entry *get_napt_entry_by_global(napt_entries *entries, napt_protocol proto, uint32_t address, uint16_t port){
 
-    if(proto == napt_protocol::udp){
+    if(proto == napt_protocol::udp){ // UDPの場合
         if(entries->udp[port - NAPT_GLOBAL_PORT_MIN].global_address == address and entries->udp[port - NAPT_GLOBAL_PORT_MIN].global_port == port){
             return &entries->udp[port - NAPT_GLOBAL_PORT_MIN];
         }
@@ -175,6 +193,8 @@ napt_entry *get_napt_entry_by_global(napt_entries *entries, napt_protocol proto,
             return &entries->tcp[port - NAPT_GLOBAL_PORT_MIN];
         }
     }else if(proto == napt_protocol::icmp){
+
+        // NATテーブルエントリがグローバルIPアドレス、ICMPのIDが一致しているか調べる
         if(entries->icmp[port].global_address == address and entries->icmp[port].global_port == port){
             return &entries->icmp[port];
         }
@@ -182,34 +202,55 @@ napt_entry *get_napt_entry_by_global(napt_entries *entries, napt_protocol proto,
     return nullptr;
 }
 
+/**
+ * ローカルアドレスとローカルポートからNATエントリを取得
+ * @param entries
+ * @param proto
+ * @param address
+ * @param port
+ * @return
+ */
 napt_entry *get_napt_entry_by_local(napt_entries *entries, napt_protocol proto, uint32_t address, uint16_t port){
 
-    if(proto == napt_protocol::udp){
+    if(proto == napt_protocol::udp){ // UDPの場合
+
+        // UDPのNATテーブルをローカルIPアドレス, ローカルポートで検索する
         for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
             if(entries->udp[i].local_address == address and entries->udp[i].local_port == port){
                 return &entries->udp[i];
             }
         }
-    }else if(proto == napt_protocol::tcp){
+    }else if(proto == napt_protocol::tcp){ // TCPの場合
+
+        // TCPのNATテーブルをローカルIPアドレス, ローカルポートで検索する
         for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
             if(entries->tcp[i].local_address == address and entries->tcp[i].local_port == port){
                 return &entries->tcp[i];
             }
         }
-    }else if(proto == napt_protocol::icmp){
+    }else if(proto == napt_protocol::icmp){ // ICMPの場合
+
+        // ICMPのNATテーブルをローカルIPアドレス、ICMPのIDで検索する
         for(int i = 0; i < NAPT_ICMP_ID_SIZE; ++i){
             if(entries->icmp[i].local_address == address and entries->icmp[i].local_port == port){
                 return &entries->icmp[i];
             }
         }
     }
-    return nullptr;
+    return nullptr; // テーブルに一致するエントリがなかったらnullptrを返す
 }
 
+/**
+ * 空いてるポートを探し、NATエントリを作成する
+ * @param entries
+ * @param proto
+ * @return
+ */
 napt_entry *create_napt_entry(napt_entries *entries, napt_protocol proto){
-    if(proto == napt_protocol::udp){
-        for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
+    if(proto == napt_protocol::udp){ // UDPの場合
+        for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){ // NATテーブルのサイズ分
             if(entries->udp[i].global_address == 0){
+                // 空いてるエントリが見つかったら、グローバルポートを設定してエントリを返す
                 entries->udp[i].global_port = NAPT_GLOBAL_PORT_MIN + i;
                 return &entries->udp[i];
             }
@@ -229,5 +270,5 @@ napt_entry *create_napt_entry(napt_entries *entries, napt_protocol proto){
             }
         }
     }
-    return nullptr;
+    return nullptr; // 空いているエントリがなかったら
 }

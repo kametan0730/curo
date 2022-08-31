@@ -10,6 +10,12 @@
 
 arp_table_entry arp_table[ARP_TABLE_SIZE]; // グローバル変数にテーブルを保持
 
+/**
+ * ARPテーブルにエントリの追加と更新
+ * @param device
+ * @param mac_address
+ * @param ip_address
+ */
 void add_arp_table_entry(net_device *device, uint8_t *mac_address, uint32_t ip_address){
     if(ip_address == IP_ADDRESS(0, 0, 0, 0)){
         return;
@@ -44,7 +50,11 @@ void add_arp_table_entry(net_device *device, uint8_t *mac_address, uint32_t ip_a
     candidate->next = creation;
 }
 
-
+/**
+ * ARPテーブルの検索
+ * @param ip_address
+ * @return
+ */
 arp_table_entry *search_arp_table_entry(uint32_t ip_address){
     arp_table_entry *candidate = &arp_table[ip_address % ARP_TABLE_SIZE];
 
@@ -64,7 +74,9 @@ arp_table_entry *search_arp_table_entry(uint32_t ip_address){
     return nullptr;
 }
 
-
+/**
+ * ARPテーブルの出力
+ */
 void dump_arp_table_entry(){
 
     printf("|-----IP ADDR-----|------MAC ADDR-----|-----INTERFACE-----|-INDEX|\n");
@@ -85,6 +97,11 @@ void dump_arp_table_entry(){
     printf("|-----------------|-------------------|-------------------|------|\n");
 }
 
+/**
+ * ARPリクエストの送信
+ * @param device
+ * @param search_ip
+ */
 void send_arp_request(net_device *device, uint32_t search_ip){
     LOG_ARP("Sending arp request via %s for %s\n", device->ifname, inet_htoa(search_ip));
 
@@ -105,6 +122,12 @@ void send_arp_request(net_device *device, uint32_t search_ip){
 void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet); // 宣言のみ
 void arp_reply_arrives(net_device *dev, arp_ip_to_ethernet *packet); // 宣言のみ
 
+/**
+ * ARPパケットの受信処理
+ * @param input_dev
+ * @param buffer
+ * @param len
+ */
 void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
     auto *packet = reinterpret_cast<arp_ip_to_ethernet *>(buffer);
@@ -138,6 +161,11 @@ void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     }
 }
 
+/**
+ * ARPリクエストパケットの受信処理
+ * @param dev
+ * @param packet
+ */
 void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet){
 
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
@@ -166,6 +194,11 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet){
     }
 }
 
+/**
+ * ARPリプライパケットの受信処理
+ * @param dev
+ * @param packet
+ */
 void arp_reply_arrives(net_device *dev, arp_ip_to_ethernet *packet){
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
         LOG_ARP("Added arp table entry by arp reply (%s => %s)\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));

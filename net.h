@@ -5,9 +5,6 @@
 #include <cstring>
 #include <iostream>
 
-#define CALLOC calloc
-#define FREE free
-
 struct net_device;
 struct my_buf;
 
@@ -27,7 +24,7 @@ struct net_device{
     uint8_t data[];
 };
 
-extern net_device *net_dev_list;
+extern net_device *net_dev_list; // net_deviceの連結リストの先頭
 
 // #define FOR_EACH_NET_DEV(dev) for (dev = net_dev_list; dev; dev = dev->next)
 

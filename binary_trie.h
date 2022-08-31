@@ -15,6 +15,14 @@ struct binary_trie_node{ // 二分トライ木構造のノード
     binary_trie_node *node_1; // 1側の子ノード
 };
 
+/**
+ * 木構造にノードを作成します
+ * @tparam DATA_TYPE
+ * @param root
+ * @param prefix
+ * @param prefix_len
+ * @param data
+ */
 template<typename DATA_TYPE>
 void binary_trie_add(binary_trie_node<DATA_TYPE> *root, uint32_t prefix, uint32_t prefix_len, DATA_TYPE *data){
 
@@ -44,6 +52,13 @@ void binary_trie_add(binary_trie_node<DATA_TYPE> *root, uint32_t prefix, uint32_
     current->data = data; //
 }
 
+/**
+ * プレフィックスからトライ木を検索します
+ * @tparam DATA_TYPE
+ * @param root
+ * @param prefix
+ * @return
+ */
 template<typename DATA_TYPE>
 DATA_TYPE *binary_trie_search(binary_trie_node<DATA_TYPE> *root, uint32_t prefix){ // 検索
 
@@ -70,6 +85,13 @@ DATA_TYPE *binary_trie_search(binary_trie_node<DATA_TYPE> *root, uint32_t prefix
     return result;
 }
 
+/**
+ * ノード情報から、プレフィックスを特定します
+ * @tparam DATA_TYPE
+ * @param target
+ * @param root
+ * @return
+ */
 template<typename DATA_TYPE>
 uint32_t locate_prefix(binary_trie_node<DATA_TYPE> *target, binary_trie_node<DATA_TYPE> *root){ // ノードから位置を特定
     uint8_t len = target->depth;

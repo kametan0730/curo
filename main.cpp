@@ -27,10 +27,19 @@
 
 #define ENABLE_INTERFACES {"router1-host1", "router1-router2", "router1-router4"}
 
+/**
+ * デバイス依存のデータ
+ */
 struct net_device_data{
     int fd;
 };
 
+/**
+ *
+ * @param dev
+ * @param buf
+ * @return
+ */
 int net_device_transmit(struct net_device *dev, my_buf *buf){
 
     uint8_t real_buffer[1550];
@@ -58,15 +67,15 @@ int net_device_transmit(struct net_device *dev, my_buf *buf){
         current_buffer = current_buffer->next_my_buf;
     }
 
-    send(((net_device_data *) dev->data)->fd, real_buffer, total_len, 0);
+    send(((net_device_data *) dev->data)->fd, real_buffer, total_len, 0); // socketを通して送信
 
-    my_buf::my_buf_free(buf, true);
+    my_buf::my_buf_free(buf, true); // メモリ開放
     return 0;
 }
 
 int net_device_poll(net_device *dev){
     uint8_t buffer[1550];
-    ssize_t n = recv(((net_device_data *) dev->data)->fd, buffer, sizeof(buffer), 0);
+    ssize_t n = recv(((net_device_data *) dev->data)->fd, buffer, sizeof(buffer), 0); // socketから受信
     if(n == -1){
         if(errno == EAGAIN){
             return 0;
@@ -74,7 +83,7 @@ int net_device_poll(net_device *dev){
             return -1;
         }
     }
-    ethernet_input(dev, buffer, n);
+    ethernet_input(dev, buffer, n); // 受信したデータをイーサネットに送る
     return 0;
 }
 
@@ -100,14 +109,11 @@ net_device *get_net_device_by_name(const char *interface){ // インターフェ
 }
 
 void configure(){
+    // for chapter 2-3
     /*
     configure_ip(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
-
-    configure_ip_napt(get_net_device_by_name("router1-host1"), get_net_device_by_name("router1-router2"));
-
     configure_net_route(IP_ADDRESS(192, 168, 2, 2), 24, IP_ADDRESS(192, 168, 0, 2));*/
-
 
     // for chapter4
     configure_ip(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
@@ -115,6 +121,9 @@ void configure(){
     configure_ip(get_net_device_by_name("router1-router4"), IP_ADDRESS(192, 168, 4, 2), IP_ADDRESS(255, 255, 255, 0));
     //configure_net_route(IP_ADDRESS(192, 168, 5, 0), 24, IP_ADDRESS(192, 168, 1, 2));
     configure_net_route(IP_ADDRESS(192, 168, 5, 0), 24, IP_ADDRESS(192, 168, 4, 1));
+
+    //configure_ip_napt(get_net_device_by_name("router1-host1"), get_net_device_by_name("router1-router2"));
+
 }
 
 int main(){
@@ -137,7 +146,7 @@ int main(){
                 continue;
             }
 
-            // Socketをオープン
+            // socketをオープン
             int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
             if(sock == -1){
                 LOG_ERROR("socket open failed\n");
@@ -171,17 +180,17 @@ int main(){
             }
 
             // net_device構造体を作成
-            auto *dev = (net_device *) calloc(1, sizeof(net_device) + sizeof(net_device_data));
+            auto *dev = (net_device *) calloc(1, sizeof(net_device) + sizeof(net_device_data)); // net_deviceの領域と、net_device_dataの領域を確保する
             dev->ops.transmit = net_device_transmit; // 送信用の関数を設定
             dev->ops.poll = net_device_poll; // 受信用の関数を設定
 
             strcpy(dev->ifname, tmp->ifa_name); // net_deviceにインターフェース名をセット
             memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6); // net_deviceにMACアドレスをセット
-            ((net_device_data *) dev->data)->fd = sock; //
+            ((net_device_data *) dev->data)->fd = sock;
 
             printf("[DEV] Created dev %s sock %d addr %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
 
-            // 連結させる
+            // net_deviceの連結リストに連結させる
             net_device *next;
             next = net_dev_list;
             net_dev_list = dev;
@@ -208,6 +217,7 @@ int main(){
     // ネットワーク設定の投入
     configure();
 
+#ifdef ENABLE_COMMAND
     // 入力時にバッファリングせずにすぐ受け取る設定
     termios attr{};
     tcgetattr(0, &attr);
@@ -217,12 +227,15 @@ int main(){
     tcsetattr(0, TCSANOW, &attr);
     fcntl(0, F_SETFL, O_NONBLOCK); // 標準入力にノンブロッキングの設定
 
+#endif
     while(true){
 
+#ifdef ENABLE_COMMAND
         char input = getchar();
         if(input != -1){
             command_input(input);
         }
+#endif
 
         // インターフェースから通信を受信
         for(net_device *dev = net_dev_list; dev; dev = dev->next){

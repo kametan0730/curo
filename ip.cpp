@@ -11,6 +11,9 @@
 
 binary_trie_node<ip_route_entry> *ip_fib;
 
+/**
+ * IPルーティングテーブルの出力
+ */
 void dump_ip_fib(){
     binary_trie_node<ip_route_entry> *current_node;
     std::queue<binary_trie_node<ip_route_entry> *> node_queue;
@@ -37,7 +40,12 @@ void dump_ip_fib(){
     }
 }
 
-
+/**
+ * 自分宛のIPパケットの処理
+ * @param input_dev
+ * @param ip_packet
+ * @param len
+ */
 void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
 
     // フラグメントされているかの確認
@@ -104,6 +112,13 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
     }
 }
 
+
+/**
+ * IPパケットの受信処理
+ * @param input_dev
+ * @param buffer
+ * @param len
+ */
 void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
     // IPアドレスのついていないインターフェースからの受信は無視
@@ -179,7 +194,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
     //宛先IPアドレスがルータの持っているIPアドレスでない場合はフォワーディングを行う
     ip_route_entry *route = binary_trie_search(ip_fib, ntohl(ip_packet->dest_addr)); // ルーティングテーブルをルックアップ
-    if(route == nullptr){
+    if(route == nullptr){ // 宛先までの経路がなかったらパケットを破棄
         LOG_IP("No route to %s\n", inet_htoa(ntohl(ip_packet->dest_addr)));
         // Drop packet
         return;
@@ -190,7 +205,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
     // IPヘッダチェックサムの再計算
     ip_packet->header_checksum = 0;
-    ip_packet->header_checksum = calc_checksum_16(reinterpret_cast<uint16_t *>(buffer), sizeof(ip_header));
+    ip_packet->header_checksum = checksum_16(reinterpret_cast<uint16_t *>(buffer), sizeof(ip_header));
 
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
     my_buf *ip_forward_buf = my_buf::create(0);
@@ -212,6 +227,13 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     }
 }
 
+/**
+ * IPパケットを直接イーサネットでホストに送信
+ * @param dev
+ * @param src_addr
+ * @param dest_addr
+ * @param buffer
+ */
 void ip_output_to_host(net_device *dev, uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
 
     arp_table_entry *entry = search_arp_table_entry(dest_addr); // ARPテーブルの検索
@@ -227,6 +249,11 @@ void ip_output_to_host(net_device *dev, uint32_t src_addr, uint32_t dest_addr, m
     }
 }
 
+/**
+ * IPパケットをnext hopに送信
+ * @param next_hop
+ * @param buffer
+ */
 void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
     arp_table_entry *entry = search_arp_table_entry(next_hop); // ARPテーブルの検索
 
@@ -248,6 +275,12 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
     }
 }
 
+/**
+ * IPパケットを送信
+ * @param src_addr
+ * @param dest_addr
+ * @param buffer
+ */
 void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
 
     ip_route_entry *route = binary_trie_search(ip_fib, dest_addr);
@@ -266,6 +299,14 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
     }
 }
 
+
+/**
+ * IPパケットにカプセル化して送信
+ * @param dest_addr
+ * @param src_addr
+ * @param upper_layer_buffer
+ * @param protocol_type
+ */
 void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_layer_buffer, uint8_t protocol_type){
 
     // IPヘッダで必要なIPパケットの全長を算出する
@@ -295,7 +336,7 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
     ip_buf->header_checksum = 0;
     ip_buf->dest_addr = htonl(dest_addr);
     ip_buf->src_addr = htonl(src_addr);
-    ip_buf->header_checksum = calc_checksum_16_my_buf(ip_my_buf);
+    ip_buf->header_checksum = checksum_16_my_buf(ip_my_buf);
 
     ip_output(src_addr, dest_addr, ip_my_buf);
 

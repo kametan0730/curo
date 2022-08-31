@@ -7,6 +7,12 @@
 #include "net.h"
 #include "utils.h"
 
+/**
+ * デバイスに経路を設定
+ * @param prefix
+ * @param prefix_len
+ * @param next_hop
+ */
 void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop){
 
     uint32_t mask = 0xffffffff;
@@ -17,12 +23,17 @@ void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop
     ire->next_hop = next_hop;
 
     binary_trie_add(ip_fib, prefix & mask, prefix_len, ire);
-
 }
 
+/**
+ * デバイスにIPアドレスを設定
+ * @param dev
+ * @param address
+ * @param netmask
+ */
 void configure_ip(net_device *dev, uint32_t address, uint32_t netmask){
     if(dev == nullptr){
-        LOG_ERROR("Configure interface not found\n");
+        LOG_ERROR("Configure net device not found\n");
         exit(1);
     }
 
@@ -46,9 +57,13 @@ void configure_ip(net_device *dev, uint32_t address, uint32_t netmask){
     binary_trie_add(ip_fib, address & netmask, len, ire);
 
     printf("Set host route %s/%d via %s\n", inet_htoa(address & netmask), len, dev->ifname);
-
 }
 
+/**
+ * デバイスにNATを設定
+ * @param inside
+ * @param outside
+ */
 void configure_ip_napt(net_device *inside, net_device *outside){
 #ifdef ENABLE_NAPT
     if(inside == nullptr or outside == nullptr){

@@ -7,9 +7,6 @@
 #include <string>
 #include "config.h"
 
-#define CALLOC calloc
-#define FREE free
-
 struct my_buf{
     my_buf *prev_my_buf = nullptr;
     my_buf *next_my_buf = nullptr;
@@ -20,14 +17,14 @@ struct my_buf{
     uint8_t buffer[];
 
     static my_buf *create(uint32_t len){
-        auto *buf = (my_buf *) CALLOC(1, sizeof(my_buf) + len);
+        auto *buf = (my_buf *) calloc(1, sizeof(my_buf) + len);
         buf->len = len;
         return buf;
     }
 
     static void my_buf_free(my_buf *buf, bool is_recursive = false){
         if(!is_recursive){
-            FREE(buf);
+            free(buf);
             return;
         }
 
@@ -35,7 +32,7 @@ struct my_buf{
         while(tail != nullptr){
             tmp = tail;
             tail = tmp->prev_my_buf;
-            FREE(tmp);
+            free(tmp);
         }
     }
 
@@ -83,9 +80,9 @@ struct my_buf{
     }
 };
 
-uint16_t calc_checksum_16(uint16_t *buffer, size_t count, uint16_t start = 0);
-uint16_t calc_checksum_16_my_buf(my_buf *buffer, uint16_t start = 0);
-uint16_t calc_checksum_16_my_buf_recursive(my_buf *buffer, uint16_t start = 0);
+uint16_t checksum_16(uint16_t *buffer, size_t count, uint16_t start = 0);
+uint16_t checksum_16_my_buf(my_buf *buffer, uint16_t start = 0);
+uint16_t checksum_16_my_buf_recursive(my_buf *buffer, uint16_t start = 0);
 
 
 #endif //CURO_MY_BUF_H

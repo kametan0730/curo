@@ -24,6 +24,8 @@
 
 #define ENABLE_ICMP_ERROR // ICMPエラーを送信するか
 
+
+#define ENABLE_COMMAND // 対話的なコマンドを有効化するか
 /*
 #define DEBUG_ETHERNET  0
 #define DEBUG_IP        0
