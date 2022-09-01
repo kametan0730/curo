@@ -235,7 +235,6 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
  * @param buffer
  */
 void ip_output_to_host(net_device *dev, uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
-
     arp_table_entry *entry = search_arp_table_entry(dest_addr); // ARPテーブルの検索
 
     if(!entry){ // ARPエントリが無かったら
@@ -283,17 +282,17 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
  */
 void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
 
-    ip_route_entry *route = binary_trie_search(ip_fib, dest_addr);
-    if(route == nullptr){
+    ip_route_entry *route = binary_trie_search(ip_fib, dest_addr); // 経路を検索
+    if(route == nullptr){ // 経路が見つからなかったら
         LOG_IP("No route to %s\n", inet_htoa(dest_addr));
         my_buf::my_buf_free(buffer, true); // Drop packet
         return;
     }
 
-    if(route->type == connected){
+    if(route->type == connected){ // 直接接続ネットワークだったら
         ip_output_to_host(route->device, src_addr, dest_addr, buffer);
         return;
-    }else if(route->type == network){
+    }else if(route->type == network){ // 直接つながっていないネットワークだったら
         ip_output_to_next_hop(route->next_hop, buffer);
         return;
     }

@@ -110,18 +110,19 @@ net_device *get_net_device_by_name(const char *interface){ // インターフェ
 
 void configure(){
     // for chapter 2-3
-    /*
+
     configure_ip(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
-    configure_net_route(IP_ADDRESS(192, 168, 2, 2), 24, IP_ADDRESS(192, 168, 0, 2));*/
+    configure_net_route(IP_ADDRESS(192, 168, 2, 2), 24, IP_ADDRESS(192, 168, 0, 2));
 
     // for chapter4
+    /*
     configure_ip(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip(get_net_device_by_name("router1-router4"), IP_ADDRESS(192, 168, 4, 2), IP_ADDRESS(255, 255, 255, 0));
     //configure_net_route(IP_ADDRESS(192, 168, 5, 0), 24, IP_ADDRESS(192, 168, 1, 2));
     configure_net_route(IP_ADDRESS(192, 168, 5, 0), 24, IP_ADDRESS(192, 168, 4, 1));
-
+    */
     //configure_ip_napt(get_net_device_by_name("router1-host1"), get_net_device_by_name("router1-router2"));
 
 }
