@@ -25,9 +25,16 @@ void dump_ip_fib(){
 
         if(current_node->data != nullptr){
             if(current_node->data->type == ip_route_type::connected){
-                printf("%s/%d connected %s\n", inet_htoa(locate_prefix(current_node, ip_fib)), current_node->depth, current_node->data->device->ifname);
+                printf("%s/%d connected %s\n",
+                       ip_htoa(locate_prefix(
+                               current_node,
+                               ip_fib)), current_node->depth, current_node->data->device->ifname);
             }else{
-                printf("%s/%d nexthop %s\n", inet_htoa(locate_prefix(current_node, ip_fib)), current_node->depth, inet_htoa(current_node->data->next_hop));
+                printf("%s/%d nexthop %s\n",
+                       ip_htoa(locate_prefix(
+                               current_node,
+                               ip_fib)), current_node->depth,
+                       ip_htoa(current_node->data->next_hop));
             }
         }
 
@@ -135,8 +142,8 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     // 送られてきたバッファをキャストして扱う
     auto *ip_packet = reinterpret_cast<ip_header *>(buffer);
 
-    LOG_IP("Received IP packet type %d from %s to %s\n", ip_packet->protocol, inet_ntoa(ip_packet->src_addr),
-           inet_ntoa(ip_packet->dest_addr));
+    LOG_IP("Received IP packet type %d from %s to %s\n", ip_packet->protocol,
+           ip_ntoa(ip_packet->src_addr), ip_ntoa(ip_packet->dest_addr));
 
     if(ip_packet->version != 4){
         LOG_IP("Incorrect IP version\n");
@@ -195,7 +202,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     //宛先IPアドレスがルータの持っているIPアドレスでない場合はフォワーディングを行う
     ip_route_entry *route = binary_trie_search(ip_fib, ntohl(ip_packet->dest_addr)); // ルーティングテーブルをルックアップ
     if(route == nullptr){ // 宛先までの経路がなかったらパケットを破棄
-        LOG_IP("No route to %s\n", inet_htoa(ntohl(ip_packet->dest_addr)));
+        LOG_IP("No route to %s\n", ip_htoa(ntohl(ip_packet->dest_addr)));
         // Drop packet
         return;
     }
@@ -238,7 +245,7 @@ void ip_output_to_host(net_device *dev, uint32_t src_addr, uint32_t dest_addr, m
     arp_table_entry *entry = search_arp_table_entry(dest_addr); // ARPテーブルの検索
 
     if(!entry){ // ARPエントリが無かったら
-        LOG_IP("Trying ip output to host, but no arp record to %s\n", inet_htoa(dest_addr));
+        LOG_IP("Trying ip output to host, but no arp record to %s\n", ip_htoa(dest_addr));
         //send_icmp_destination_unreachable(dev->ip_dev->address, src_addr, ICMP_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE, buffer->buf_ptr, 100);
         send_arp_request(dev, dest_addr); // ARPリクエストの送信
         my_buf::my_buf_free(buffer, true); // Drop packet
@@ -258,12 +265,12 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
     arp_table_entry *entry = search_arp_table_entry(next_hop); // ARPテーブルの検索
 
     if(!entry){  // ARPエントリが無かったら
-        LOG_IP("Trying ip output to next hop, but no arp record to %s\n", inet_htoa(next_hop));
+        LOG_IP("Trying ip output to next hop, but no arp record to %s\n", ip_htoa(next_hop));
 
         ip_route_entry *route_to_next_hop = binary_trie_search(ip_fib, next_hop); // ルーティングテーブルのルックアップ
 
         if(route_to_next_hop == nullptr or route_to_next_hop->type != connected){ // next hopへの到達性が無かったら
-            LOG_IP("Next hop %s is not reachable\n", inet_htoa(next_hop));
+            LOG_IP("Next hop %s is not reachable\n", ip_htoa(next_hop));
         }else{
             send_arp_request(route_to_next_hop->device, next_hop); // ARPリクエストを送信
         }
@@ -285,7 +292,7 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
 
     ip_route_entry *route = binary_trie_search(ip_fib, dest_addr); // 経路を検索
     if(route == nullptr){ // 経路が見つからなかったら
-        LOG_IP("No route to %s\n", inet_htoa(dest_addr));
+        LOG_IP("No route to %s\n", ip_htoa(dest_addr));
         my_buf::my_buf_free(buffer, true); // Drop packet
         return;
     }

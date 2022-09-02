@@ -9,7 +9,7 @@
  */
 void dump_napt_tables(){
 #ifdef ENABLE_NAPT
-    printf("|-PROTO-|--------SOURCE---------|------DESTINATION------|\n");
+    printf("|-PROTO-|---------LOCAL---------|--------GLOBAL---------|\n");
     net_device *a;
     for(a = net_dev_list; a; a = a->next){
         if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr){
@@ -17,17 +17,17 @@ void dump_napt_tables(){
             for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
                 if(a->ip_dev->napt_inside_dev->entries->tcp[i].global_port != 0){
                     printf("|  TCP  | %15s:%05d | %15s:%05d |\n",
-                           inet_htoa(a->ip_dev->napt_inside_dev->entries->tcp[i].local_address),
+                           ip_htoa(a->ip_dev->napt_inside_dev->entries->tcp[i].local_address),
                            a->ip_dev->napt_inside_dev->entries->tcp[i].local_port,
-                           inet_htoa(a->ip_dev->napt_inside_dev->entries->tcp[i].global_address),
+                           ip_htoa(a->ip_dev->napt_inside_dev->entries->tcp[i].global_address),
                            a->ip_dev->napt_inside_dev->entries->tcp[i].global_port
                     );
                 }
                 if(a->ip_dev->napt_inside_dev->entries->udp[i].global_port != 0){
                     printf("|  UDP  | %15s:%05d | %15s:%05d |\n",
-                           inet_htoa(a->ip_dev->napt_inside_dev->entries->udp[i].local_address),
+                           ip_htoa(a->ip_dev->napt_inside_dev->entries->udp[i].local_address),
                            a->ip_dev->napt_inside_dev->entries->udp[i].local_port,
-                           inet_htoa(a->ip_dev->napt_inside_dev->entries->udp[i].global_address),
+                           ip_htoa(a->ip_dev->napt_inside_dev->entries->udp[i].global_address),
                            a->ip_dev->napt_inside_dev->entries->udp[i].global_port
                     );
                 }
@@ -35,9 +35,9 @@ void dump_napt_tables(){
             for(int i = 0; i < NAPT_ICMP_ID_SIZE; ++i){
                 if(a->ip_dev->napt_inside_dev->entries->icmp[i].local_address != 0){
                     printf("|  ICMP | %15s:%05d | %15s:%05d |\n",
-                           inet_htoa(a->ip_dev->napt_inside_dev->entries->icmp[i].local_address),
+                           ip_htoa(a->ip_dev->napt_inside_dev->entries->icmp[i].local_address),
                            a->ip_dev->napt_inside_dev->entries->icmp[i].local_port,
-                           inet_htoa(a->ip_dev->napt_inside_dev->entries->icmp[i].global_address),
+                           ip_htoa(a->ip_dev->napt_inside_dev->entries->icmp[i].global_address),
                            a->ip_dev->napt_inside_dev->entries->icmp[i].global_port
                     );
                 }

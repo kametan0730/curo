@@ -19,6 +19,7 @@ enum class napt_direction{
     outgoing, incoming
 };
 
+// NATに対応しているプロトコル
 enum class napt_protocol{
     udp, tcp, icmp
 };
@@ -34,13 +35,13 @@ struct napt_packet_head{
                     uint16_t checksum;
                 } udp;
                 struct{
-                    uint32_t sequence_number;
-                    uint32_t acknowledge_number;
+                    uint32_t seq;
+                    uint32_t ack_seq;
                     uint8_t offset;
                     uint8_t flag;
                     uint16_t window;
                     uint16_t checksum;
-                    uint16_t urgent_pointer;
+                    uint16_t urg_ptr;
                 } tcp;
 
             };

@@ -35,7 +35,7 @@ struct net_device_data{
 };
 
 /**
- *
+ * ネットデバイスの送信処理
  * @param dev
  * @param buf
  * @return
@@ -73,6 +73,11 @@ int net_device_transmit(struct net_device *dev, my_buf *buf){
     return 0;
 }
 
+/**
+ * ネットワークデバイスの受信処理
+ * @param dev
+ * @return
+ */
 int net_device_poll(net_device *dev){
     uint8_t buffer[1550];
     ssize_t n = recv(((net_device_data *) dev->data)->fd, buffer, sizeof(buffer), 0); // socketから受信
@@ -98,7 +103,12 @@ bool is_enable_interface(const char *ifname){
     return false;
 }
 
-net_device *get_net_device_by_name(const char *interface){ // インターフェース名からデバイスを探す
+/**
+ * インターフェース名からデバイスを探す
+ * @param interface
+ * @return
+ */
+net_device *get_net_device_by_name(const char *interface){
     net_device *dev;
     for(dev = net_dev_list; dev; dev = dev->next){
         if(strcmp(dev->ifname, interface) == 0){
@@ -108,6 +118,9 @@ net_device *get_net_device_by_name(const char *interface){ // インターフェ
     return nullptr;
 }
 
+/**
+ * 設定する
+ */
 void configure(){
     // for chapter 2-3
 
@@ -134,6 +147,10 @@ void configure(){
 
 }
 
+/**
+ * エントリーポイント
+ * @return
+ */
 int main(){
     struct ifreq ifr{};
     struct ifaddrs *addrs;

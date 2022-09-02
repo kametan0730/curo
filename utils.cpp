@@ -22,7 +22,7 @@ char inet_xtoa_string_pool[4][16]; // 16バイト(xxx.xxx.xxx.xxxの文字数+1)
  * @param in
  * @return
  */
-const char *inet_ntoa(uint32_t in){ // ネットワークバイトオーダーのIPアドレスから文字列に変換
+const char *ip_ntoa(uint32_t in){ // ネットワークバイトオーダーのIPアドレスから文字列に変換
     uint8_t a = in & 0x000000ff;
     uint8_t b = in >> 8 & 0x000000ff;
     uint8_t c = in >> 16 & 0x000000ff;
@@ -33,8 +33,8 @@ const char *inet_ntoa(uint32_t in){ // ネットワークバイトオーダー�
     return inet_xtoa_string_pool[inet_ntoa_string_pool_index];
 }
 
-const char *inet_htoa(uint32_t in){ // ホストバイトオーダーのIPアドレスから文字列に変換
-    return inet_ntoa(htonl(in));
+const char *ip_htoa(uint32_t in){ // ホストバイトオーダーのIPアドレスから文字列に変換
+    return ip_ntoa(htonl(in));
 }
 
 uint8_t mac_addr_toa_string_pool_index = 0;

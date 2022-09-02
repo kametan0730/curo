@@ -88,7 +88,7 @@ void dump_arp_table_entry(){
 
         for(arp_table_entry *a = &arp_table[i]; a; a = a->next){
             printf("| %15s | %14s | %17s | %04d |\n",
-                   inet_htoa(a->ip_address),
+                   ip_htoa(a->ip_address),
                    mac_addr_toa(a->mac_address),
                    a->device->ifname, i);
         }
@@ -103,7 +103,7 @@ void dump_arp_table_entry(){
  * @param search_ip
  */
 void send_arp_request(net_device *device, uint32_t search_ip){
-    LOG_ARP("Sending arp request via %s for %s\n", device->ifname, inet_htoa(search_ip));
+    LOG_ARP("Sending arp request via %s for %s\n", device->ifname, ip_htoa(search_ip));
 
     auto *arp_my_buf = my_buf::create(46);
     auto *arp_buf = reinterpret_cast<arp_ip_to_ethernet *>(arp_my_buf->buffer);
@@ -170,7 +170,7 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet){
 
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
         if(dev->ip_dev->address == ntohl(packet->tpa)){ // 要求されているアドレスが自分の物だったら
-            LOG_ARP("Sending arp reply via %s\n", inet_ntoa(packet->tpa));
+            LOG_ARP("Sending arp reply via %s\n", ip_ntoa(packet->tpa));
 
             auto *reply_my_buf = my_buf::create(46);
 
@@ -201,7 +201,7 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet){
  */
 void arp_reply_arrives(net_device *dev, arp_ip_to_ethernet *packet){
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
-        LOG_ARP("Added arp table entry by arp reply (%s => %s)\n", inet_ntoa(packet->spa), mac_addr_toa(packet->sha));
+        LOG_ARP("Added arp table entry by arp reply (%s => %s)\n", ip_ntoa(packet->spa), mac_addr_toa(packet->sha));
         add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); // ARPテーブルエントリの追加
     }else{
         LOG_ARP("ARP reply received from device with no IP address: %s\n", dev->ifname);
