@@ -108,7 +108,7 @@ void send_arp_request(net_device *device, uint32_t search_ip){
     auto *arp_my_buf = my_buf::create(46);
     auto *arp_buf = reinterpret_cast<arp_ip_to_ethernet *>(arp_my_buf->buffer);
     arp_buf->htype = htons(ARP_HTYPE_ETHERNET);
-    arp_buf->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
+    arp_buf->ptype = htons(ETHERNET_TYPE_IP);
     arp_buf->hlen = 0x06;
     arp_buf->plen = 0x04;
     arp_buf->op = htons(ARP_OPERATION_CODE_REQUEST);
@@ -116,7 +116,7 @@ void send_arp_request(net_device *device, uint32_t search_ip){
     arp_buf->spa = htonl(device->ip_dev->address);
     arp_buf->tpa = htonl(search_ip);
 
-    ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, arp_my_buf, ETHERNET_PROTOCOL_TYPE_ARP);
+    ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, arp_my_buf, ETHERNET_TYPE_ARP);
 }
 
 void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet); // 宣言のみ
@@ -134,7 +134,7 @@ void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     uint16_t op = ntohs(packet->op);
 
     switch(ntohs(packet->ptype)){
-        case ETHERNET_PROTOCOL_TYPE_IP:{
+        case ETHERNET_TYPE_IP:{
 
             if(len < sizeof(arp_ip_to_ethernet)){
                 LOG_ARP("Illegal arp packet length\n");
@@ -176,7 +176,7 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet){
 
             auto reply_buf = reinterpret_cast<arp_ip_to_ethernet *>(reply_my_buf->buffer);
             reply_buf->htype = htons(ARP_HTYPE_ETHERNET);
-            reply_buf->ptype = htons(ETHERNET_PROTOCOL_TYPE_IP);
+            reply_buf->ptype = htons(ETHERNET_TYPE_IP);
             reply_buf->hlen = 0x06; // IPアドレスの長さ
             reply_buf->plen = 0x04; // MACアドレスの長さ
             reply_buf->op = htons(ARP_OPERATION_CODE_REPLY);
@@ -185,7 +185,7 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet){
             memcpy(reply_buf->tha, packet->sha, 6);
             reply_buf->tpa = packet->spa;
 
-            ethernet_encapsulate_output(dev, packet->sha, reply_my_buf, ETHERNET_PROTOCOL_TYPE_ARP);
+            ethernet_encapsulate_output(dev, packet->sha, reply_my_buf, ETHERNET_TYPE_ARP);
             add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); // ARPリクエストからもエントリを生成
             return;
         }

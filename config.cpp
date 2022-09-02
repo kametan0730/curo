@@ -56,7 +56,7 @@ void configure_ip(net_device *dev, uint32_t address, uint32_t netmask){
 
     binary_trie_add(ip_fib, address & netmask, len, ire);
 
-    printf("Set host route %s/%d via %s\n", inet_htoa(address & netmask), len, dev->ifname);
+    printf("Set directly connected route %s/%d via %s\n", inet_htoa(address & netmask), len, dev->ifname);
 }
 
 /**

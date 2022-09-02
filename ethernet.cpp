@@ -31,13 +31,13 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
 
     // イーサネットタイプの値から上位プロトコルを特定する
     switch(ethernet_type){
-        case ETHERNET_PROTOCOL_TYPE_ARP: // イーサネットタイプがARPのものだったら
+        case ETHERNET_TYPE_ARP: // イーサネットタイプがARPのものだったら
             return arp_input(
                     dev,
                     buffer + ETHERNET_HEADER_SIZE,
                     len - ETHERNET_HEADER_SIZE
             ); // Ethernetヘッダを外してARP処理へ
-        case ETHERNET_PROTOCOL_TYPE_IP: // イーサネットタイプがIPのものだったら
+        case ETHERNET_TYPE_IP: // イーサネットタイプがIPのものだったら
             return ip_input(
                     dev,
                     buffer + ETHERNET_HEADER_SIZE,
@@ -57,7 +57,7 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
  * @param protocol_type
  */
 void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, my_buf *upper_layer_buffer, uint16_t protocol_type){
-    LOG_ETHERNET("Sent ethernet frame type %04x from %s to %s\n",
+    LOG_ETHERNET("Sending ethernet frame type %04x from %s to %s\n",
                  protocol_type, mac_addr_toa(device->mac_address),
                  mac_addr_toa(dest_addr));
 
