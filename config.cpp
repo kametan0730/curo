@@ -61,8 +61,8 @@ void configure_ip(net_device *dev, uint32_t address, uint32_t netmask){
 
 /**
  * デバイスにNATを設定
- * @param inside
- * @param outside
+ * @param inside NATの内側のデバイス
+ * @param outside NATの外側のデバイス
  */
 void configure_ip_napt(net_device *inside, net_device *outside){
 #ifdef ENABLE_NAPT
