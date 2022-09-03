@@ -142,12 +142,12 @@ void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
                 return;
             }
 
-            if(packet->hlen != 6){
+            if(packet->hlen != ETHERNET_ADDRESS_LEN){
                 LOG_ARP("Illegal hardware address length\n");
                 return;
             }
 
-            if(packet->plen != 4){
+            if(packet->plen != IP_ADDRESS_LEN){
                 LOG_ARP("Illegal protocol address length\n");
                 return;
             }
@@ -178,20 +178,20 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet){
             auto reply_buf = reinterpret_cast<arp_ip_to_ethernet *>(reply_my_buf->buffer);
             reply_buf->htype = htons(ARP_HTYPE_ETHERNET);
             reply_buf->ptype = htons(ETHERNET_TYPE_IP);
-            reply_buf->hlen = 0x06; // IPアドレスの長さ
-            reply_buf->plen = 0x04; // MACアドレスの長さ
+            reply_buf->hlen = ETHERNET_ADDRESS_LEN; // IPアドレスの長さ
+            reply_buf->plen = IP_ADDRESS_LEN; // MACアドレスの長さ
             reply_buf->op = htons(ARP_OPERATION_CODE_REPLY);
+
+            // 返答の情報を書き込む
             memcpy(reply_buf->sha, dev->mac_address, 6);
             reply_buf->spa = htonl(dev->ip_dev->address);
             memcpy(reply_buf->tha, packet->sha, 6);
             reply_buf->tpa = packet->spa;
 
-            ethernet_encapsulate_output(dev, packet->sha, reply_my_buf, ETHERNET_TYPE_ARP);
+            ethernet_encapsulate_output(dev, packet->sha, reply_my_buf, ETHERNET_TYPE_ARP); // イーサネットで送信
             add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); // ARPリクエストからもエントリを生成
             return;
         }
-    }else{
-        LOG_ARP("ARP request received from device with no IP address: %s\n", dev->ifname);
     }
 }
 
@@ -204,7 +204,5 @@ void arp_reply_arrives(net_device *dev, arp_ip_to_ethernet *packet){
     if(dev->ip_dev != nullptr and dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){ // IPアドレスが設定されているデバイスからの受信だったら
         LOG_ARP("Added arp table entry by arp reply (%s => %s)\n", ip_ntoa(packet->spa), mac_addr_toa(packet->sha));
         add_arp_table_entry(dev, packet->sha, ntohl(packet->spa)); // ARPテーブルエントリの追加
-    }else{
-        LOG_ARP("ARP reply received from device with no IP address: %s\n", dev->ifname);
     }
 }

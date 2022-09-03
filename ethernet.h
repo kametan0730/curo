@@ -10,6 +10,7 @@
 #define ETHERNET_TYPE_ARP 0x0806
 #define ETHERNET_TYPE_IPv6 0x86dd
 
+#define ETHERNET_ADDRESS_LEN 6
 const uint8_t ETHERNET_ADDRESS_BROADCAST[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 struct ethernet_header{
