@@ -137,7 +137,7 @@ void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     uint16_t op = ntohs(packet->op);
 
     switch(ntohs(packet->ptype)){
-        case ETHERNET_TYPE_IP:{
+        case ETHERNET_TYPE_IP:
 
             if(len < sizeof(arp_ip_to_ethernet)){
                 LOG_ARP("Illegal arp packet length\n");
@@ -154,12 +154,13 @@ void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
                 return;
             }
 
+            // オペレーションコードによって分岐
             if(op == ARP_OPERATION_CODE_REQUEST){
                 arp_request_arrives(input_dev, packet);
             }else if(op == ARP_OPERATION_CODE_REPLY){
                 arp_reply_arrives(input_dev, packet);
             }
-        }
+
             break;
     }
 }

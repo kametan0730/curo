@@ -53,8 +53,9 @@ void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len)
             ip_encapsulate_output(source, destination, reply_my_buf, IP_PROTOCOL_TYPE_ICMP);
         }
             break;
+
         default:
-        LOG_ICMP("Received unhandled icmp type %d\n", header->type);
+            LOG_ICMP("Received unhandled icmp type %d\n", header->type);
             break;
     }
 }

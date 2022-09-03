@@ -218,7 +218,7 @@ int main(){
             memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6); // net_deviceにMACアドレスをセット
             ((net_device_data *) dev->data)->fd = sock;
 
-            printf("Created dev %s sock %d addr %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
+            printf("Created dev %s socket %d address %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
 
             // net_deviceの連結リストに連結させる
             net_device *next;
