@@ -41,36 +41,10 @@ struct net_device_data{
  * @param buf
  * @return
  */
-int net_device_transmit(struct net_device *dev, my_buf *buf){
+int net_device_transmit(struct net_device *dev, uint8_t *buffer, size_t len){
 
-    uint8_t real_buffer[1550];
-    uint16_t total_len = 0;
+    send(((net_device_data *) dev->data)->fd, buffer, len, 0); // socketを通して送信
 
-    my_buf *current_buffer = buf;
-    while(current_buffer != nullptr){
-
-        if(total_len + current_buffer->len > sizeof(real_buffer)){ // Overflowする場合
-            printf("Frame is too long!\n");
-            return -1;
-        }
-
-#ifdef ENABLE_MYBUF_NON_COPY_MODE
-        if(current_buffer->buf_ptr != nullptr){
-            memcpy(&real_buffer[total_len], current_buffer->buf_ptr, current_buffer->len);
-        }else{
-#endif
-            memcpy(&real_buffer[total_len], current_buffer->buffer, current_buffer->len);
-#ifdef ENABLE_MYBUF_NON_COPY_MODE
-        }
-#endif
-
-        total_len += current_buffer->len;
-        current_buffer = current_buffer->next_my_buf;
-    }
-
-    send(((net_device_data *) dev->data)->fd, real_buffer, total_len, 0); // socketを通して送信
-
-    my_buf::my_buf_free(buf, true); // メモリ開放
     return 0;
 }
 

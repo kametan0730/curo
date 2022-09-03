@@ -9,7 +9,7 @@ struct net_device;
 struct my_buf;
 
 struct net_device_ops{
-    int (*transmit)(net_device *dev, my_buf *buf);
+    int (*transmit)(net_device *dev, uint8_t *buffer, size_t len);
     int (*poll)(net_device *dev);
 };
 
