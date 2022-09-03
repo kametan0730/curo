@@ -29,7 +29,7 @@
 #define IGNORE_INTERFACES {"lo", "bond0", "dummy0", "tunl0", "sit0"}
 
 /**
- * デバイス依存のデータ
+ * デバイスのプラットフォーム依存のデータ
  */
 struct net_device_data{
     int fd;
@@ -93,6 +93,11 @@ int net_device_poll(net_device *dev){
     return 0;
 }
 
+/**
+ * 無視するデバイスかどうかを返す
+ * @param ifname
+ * @return 無視するデバイスかどうか
+ */
 bool is_ignore_interface(const char *ifname){
     char ignore_interfaces[][IF_NAMESIZE] = IGNORE_INTERFACES;
 

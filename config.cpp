@@ -55,6 +55,7 @@ void configure_ip(net_device *dev, uint32_t address, uint32_t netmask){
         }
     }
 
+    // 直接接続ネットワークの経路を設定
     binary_trie_add(ip_fib, address & netmask, len, ire);
 
     printf("Set directly connected route %s/%d via %s\n",
@@ -70,12 +71,12 @@ void configure_ip_napt(net_device *inside, net_device *outside){
 #ifdef ENABLE_NAPT
     if(inside == nullptr or outside == nullptr){
         LOG_ERROR("Failed to configure NAPT %s => %s\n", inside->ifname, outside->ifname);
-        exit(1);
+        exit(1); // プログラムを終了
     }
 
     if(inside->ip_dev == nullptr or outside->ip_dev == nullptr){
         LOG_ERROR("Failed to configure NAPT %s => %s\n", inside->ifname, outside->ifname);
-        exit(1);
+        exit(1); // プログラムを終了
     }
 
     inside->ip_dev->napt_inside_dev = (napt_inside_device *) calloc(1, sizeof(napt_inside_device));
