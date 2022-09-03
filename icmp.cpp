@@ -4,6 +4,7 @@
 #include "config.h"
 #include "ethernet.h"
 #include "ip.h"
+#include "log.h"
 #include "my_buf.h"
 #include "net.h"
 #include "utils.h"
@@ -30,7 +31,6 @@ void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len)
         case ICMP_TYPE_ECHO_REPLY:{
             // ICMP echoメッセージとして解釈する
             auto *reply = reinterpret_cast<icmp_echo *>(buffer);
-
             LOG_ICMP("Received icmp echo reply id %04x seq %d\n", ntohs(reply->identify), ntohs(reply->sequence));
         }
             break;

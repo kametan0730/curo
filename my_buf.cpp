@@ -10,21 +10,21 @@
 uint16_t checksum_16(uint16_t *buffer, size_t count, uint16_t start){
     uint32_t sum = start;
 
+    // まず16ビット毎に足す
     while(count > 1){
-        /*  This is the inner loop */
         sum += *buffer++;
         count -= 2;
     }
 
-    /*  Add left-over byte, if any */
+    // もし1バイト余ってたら足す
     if(count > 0)
         sum += *(uint8_t *) buffer;
 
-    /*  Fold 32-bit sum to 16 bits */
+    // あふれた桁を折り返して足す
     while(sum >> 16)
         sum = (sum & 0xffff) + (sum >> 16);
 
-    return ~sum;
+    return ~sum; // 論理否定(NOT)をとる
 }
 
 uint16_t checksum_16_my_buf(my_buf *buffer, uint16_t start){

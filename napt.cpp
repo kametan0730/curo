@@ -1,6 +1,8 @@
 #include "napt.h"
 
 #include "config.h"
+#include "ip.h"
+#include "log.h"
 #include "net.h"
 #include "my_buf.h"
 

@@ -3,6 +3,7 @@
 
 #include "binary_trie.h"
 #include "ip.h"
+#include "log.h"
 #include "napt.h"
 #include "net.h"
 #include "utils.h"

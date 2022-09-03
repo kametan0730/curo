@@ -4,6 +4,7 @@
 #include "config.h"
 #include "ethernet.h"
 #include "ip.h"
+#include "log.h"
 #include "my_buf.h"
 #include "net.h"
 #include "utils.h"

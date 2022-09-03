@@ -4,6 +4,7 @@
 #include "arp.h"
 #include "config.h"
 #include "ip.h"
+#include "log.h"
 #include "my_buf.h"
 #include "utils.h"
 

@@ -5,6 +5,7 @@
 #include "config.h"
 #include "ethernet.h"
 #include "icmp.h"
+#include "log.h"
 #include "my_buf.h"
 #include "napt.h"
 #include "utils.h"
@@ -353,11 +354,20 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
     ip_output(src_addr, dest_addr, ip_my_buf);
 
     /*
-    // for book (IP ルーティング/フォワーディングが実装されてないとき用)
+    // for book chapter3 (IP ルーティング/フォワーディングが実装されてないとき用)
     for(net_device* dev = net_dev_list; dev; dev = dev->next){
         if(dev->ip_dev == nullptr or dev->ip_dev->address == IP_ADDRESS(0, 0, 0, 0)) continue;
+        LOG_IP("%s/%s %s\n", ip_htoa(dev->ip_dev->address), ip_htoa(dev->ip_dev->netmask),  ip_htoa(dest_addr))
         if(in_subnet_with_mask(dev->ip_dev->address, dev->ip_dev->netmask, dest_addr)){
-            ip_output_to_host(dev, src_addr, dest_addr, buf);
+            arp_table_entry* entry;
+            entry = search_arp_table_entry(dest_addr);
+            if(entry == nullptr){
+                LOG_IP("Trying ip output, but no arp record to %s\n", ip_htoa(dest_addr));
+                send_arp_request(dev, dest_addr);
+                my_buf::my_buf_free(upper_layer_buffer, true);
+                return;
+            }
+            ethernet_encapsulate_output(dev, entry->mac_address, ip_my_buf, ETHERNET_TYPE_IP);
         }
     }
     */
