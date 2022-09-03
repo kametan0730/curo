@@ -50,7 +50,7 @@ int net_device_transmit(struct net_device *dev, my_buf *buf){
     while(current_buffer != nullptr){
 
         if(total_len + current_buffer->len > sizeof(real_buffer)){ // Overflowする場合
-            printf("[DEV] Frame is too long!\n");
+            printf("Frame is too long!\n");
             return -1;
         }
 
@@ -179,13 +179,13 @@ int main(){
             // socketをオープン
             int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
             if(sock == -1){
-                LOG_ERROR("socket open failed\n");
+                LOG_ERROR("socket open failed: %s\n", strerror(errno));
                 continue;
             }
 
             // インターフェースのインデックスを取得
             if(ioctl(sock, SIOCGIFINDEX, &ifr) == -1){
-                LOG_ERROR("ioctl SIOCGIFINDEX\n");
+                LOG_ERROR("ioctl SIOCGIFINDEX failed: %s\n", strerror(errno));
                 close(sock);
                 continue;
             }
@@ -197,14 +197,14 @@ int main(){
             addr.sll_protocol = htons(ETH_P_ALL);
             addr.sll_ifindex = ifr.ifr_ifindex;
             if(bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1){
-                LOG_ERROR("bind failed\n");
+                LOG_ERROR("bind failed: %s\n", strerror(errno));
                 close(sock);
                 continue;
             }
 
             // インターフェースのMACアドレスを取得
             if(ioctl(sock, SIOCGIFHWADDR, &ifr) != 0){
-                LOG_ERROR("ioctl SIOCGIFHWADDR failed\n");
+                LOG_ERROR("ioctl SIOCGIFHWADDR failed %s\n", strerror(errno));
                 close(sock);
                 continue;
             }
@@ -218,7 +218,7 @@ int main(){
             memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6); // net_deviceにMACアドレスをセット
             ((net_device_data *) dev->data)->fd = sock;
 
-            printf("[DEV] Created dev %s sock %d addr %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
+            printf("Created dev %s sock %d addr %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
 
             // net_deviceの連結リストに連結させる
             net_device *next;

@@ -19,7 +19,8 @@ void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop
     uint32_t mask = 0xffffffff;
     mask <<= (32 - prefix_len);
 
-    ip_route_entry *ire = static_cast<ip_route_entry *>(calloc(1, sizeof(ip_route_entry)));
+    ip_route_entry *ire;
+    ire = (ip_route_entry *) (calloc(1, sizeof(ip_route_entry)));
     ire->type = network;
     ire->next_hop = next_hop;
 
@@ -44,7 +45,8 @@ void configure_ip(net_device *dev, uint32_t address, uint32_t netmask){
     dev->ip_dev->netmask = netmask;
 
     // IPアドレスを設定すると同時に直接接続ルートを設定する
-    ip_route_entry *ire = (ip_route_entry *) calloc(1, sizeof(ip_route_entry));
+    ip_route_entry *ire;
+    ire = (ip_route_entry *) calloc(1, sizeof(ip_route_entry));
     ire->type = connected;
     ire->device = dev;
 
