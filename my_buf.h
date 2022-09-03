@@ -36,6 +36,20 @@ struct my_buf{
         }
     }
 
+    my_buf *get_tail_my_buf(){
+        my_buf *candidate = this;
+        while(candidate->next_my_buf != nullptr){
+            candidate = candidate->next_my_buf;
+        }
+        return candidate;
+    }
+
+    void add_header(my_buf *buf){
+        this->prev_my_buf = buf;
+        buf->next_my_buf = this;
+    }
+
+    /*
     uint16_t get_length_until_tail(){
         uint16_t total_len = 0;
         my_buf *current_buffer = this;
@@ -48,25 +62,12 @@ struct my_buf{
         return total_len;
     }
 
-    my_buf *get_tail_my_buf(){
-        my_buf *candidate = this;
-        while(candidate->next_my_buf != nullptr){
-            candidate = candidate->next_my_buf;
-        }
-        return candidate;
-    }
-
     my_buf *get_head_my_buf(){
         my_buf *candidate = this;
         while(candidate->prev_my_buf != nullptr){
             candidate = candidate->prev_my_buf;
         }
         return candidate;
-    }
-
-    void add_header(my_buf *buf){
-        this->prev_my_buf = buf;
-        buf->next_my_buf = this;
     }
 
     void add_before(my_buf *buf){
@@ -78,6 +79,7 @@ struct my_buf{
         this->next_my_buf = buf;
         buf->prev_my_buf = this;
     }
+    */
 };
 
 uint16_t checksum_16(uint16_t *buffer, size_t count, uint16_t start = 0);

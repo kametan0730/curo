@@ -105,7 +105,12 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
     // 上位プロトコルの処理に移行
     switch(ip_packet->protocol){
         case IP_PROTOCOL_TYPE_ICMP:
-            return icmp_input(ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ((uint8_t *) ip_packet) + IP_HEADER_SIZE, len - IP_HEADER_SIZE);
+            return icmp_input(
+                    ntohl(ip_packet->src_addr),
+                    ntohl(ip_packet->dest_addr),
+                    ((uint8_t *) ip_packet) + IP_HEADER_SIZE,
+                    len - IP_HEADER_SIZE
+                    );
 
         case IP_PROTOCOL_TYPE_UDP:
         case IP_PROTOCOL_TYPE_TCP:
@@ -156,14 +161,14 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
         return;
     }
 
+    if(ip_packet->ttl <= 1){ // TTLが1以下ならドロップ
 #ifdef ENABLE_ICMP_ERROR
-    if(ip_packet->ttl <= 1){
         send_icmp_time_exceeded(input_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED, buffer, len);
+#endif
         return;
     }
-#endif
 
-    if(ip_packet->dest_addr == IP_ADDRESS(255, 255, 255, 255)){ // 宛先アドレスがブロードキャストアドレスの場合
+    if(ip_packet->dest_addr == IP_ADDRESS_LIMITED_BROADCAST){ // 宛先アドレスがブロードキャストアドレスの場合
         return ip_input_to_ours(input_dev, ip_packet, len); // 自分宛の通信として処理
     }
 
@@ -193,7 +198,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
             }
         }else{
             LOG_IP("NAPT unimplemented packet dropped type=%d\n", ip_packet->protocol);
-            return;
+            return; // NAPTできないパケットはドロップ
 
         }
     }
