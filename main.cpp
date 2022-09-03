@@ -1,19 +1,12 @@
-#include <iostream>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <cstdint>
 #include <fcntl.h>
-#include <poll.h>
 #include <unistd.h>
-#include <cerrno>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
 #include <netpacket/packet.h>
 #include <termios.h>
 #include "binary_trie.h"
@@ -103,19 +96,19 @@ net_device *get_net_device_by_name(const char *interface){
  */
 void configure(){
     // for chapter 2-3
-
+/*
     configure_ip(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_net_route(IP_ADDRESS(192, 168, 2, 0), 24, IP_ADDRESS(192, 168, 0, 2));
-
+*/
     // for chapter4
-    /*
+
     configure_ip(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip(get_net_device_by_name("router1-router4"), IP_ADDRESS(192, 168, 4, 2), IP_ADDRESS(255, 255, 255, 0));
     //configure_net_route(IP_ADDRESS(192, 168, 5, 0), 24, IP_ADDRESS(192, 168, 1, 2));
     configure_net_route(IP_ADDRESS(192, 168, 5, 0), 24, IP_ADDRESS(192, 168, 4, 1));
-    */
+
 
     // for chapter 6
     /*
@@ -241,7 +234,7 @@ int main(){
         }
 #endif
 
-        // インターフェースから通信を受信
+        // デバイスから通信を受信
         for(net_device *dev = net_dev_list; dev; dev = dev->next){
             dev->ops.poll(dev);
         }
