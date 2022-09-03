@@ -75,6 +75,6 @@ bool in_subnet(uint32_t subnet_prefix, uint8_t subnet_prefix_len, uint32_t targe
  * @return
  */
 bool in_subnet_with_mask(uint32_t subnet_prefix, uint32_t subnet_mask, uint32_t target_address){
-    return ((target_address | subnet_mask) == (subnet_prefix | subnet_mask));
+    return ((target_address & subnet_mask) == (subnet_prefix & subnet_mask));
 }
 
