@@ -18,24 +18,23 @@ arp_table_entry arp_table[ARP_TABLE_SIZE]; // グローバル変数にテーブ�
  * @param ip_address
  */
 void add_arp_table_entry(net_device *device, uint8_t *mac_address, uint32_t ip_address){
-    if(ip_address == IP_ADDRESS(0, 0, 0, 0)){
-        return;
-    }
 
+    // 初めの候補の場所は、HashテーブルのIPアドレスのハッシュがindexのもの
     arp_table_entry *candidate = &arp_table[ip_address % ARP_TABLE_SIZE];
 
     // テーブルに入れられるか確認
-    if(candidate->ip_address == 0 or candidate->ip_address == ip_address){ // 想定のHash値に入れられるとき
+    if(candidate->ip_address == 0 or candidate->ip_address == ip_address){ // 初めの候補の場所に入れられるとき
+        // エントリをセット
         memcpy(candidate->mac_address, mac_address, 6);
         candidate->ip_address = ip_address;
         candidate->device = device;
         return;
     }
 
-    // 入れられなかった場合は、arp_table_entryに連結する
-    while(candidate->next != nullptr){
+    // 入れられなかった場合は、その候補にあるエントリに連結する
+    while(candidate->next != nullptr){ // 連結リストの末尾までたどる
         candidate = candidate->next;
-        if(candidate->ip_address == ip_address){
+        if(candidate->ip_address == ip_address){ // 途中で同じIPアドレスのエントリがあったら、そのエントリを更新する
             memcpy(candidate->mac_address, mac_address, 6);
             candidate->ip_address = ip_address;
             candidate->device = device;
@@ -43,13 +42,12 @@ void add_arp_table_entry(net_device *device, uint8_t *mac_address, uint32_t ip_a
         }
     }
 
-    arp_table_entry *creation;
-    creation = (arp_table_entry *) calloc(1, sizeof(arp_table_entry));
-    memcpy(creation->mac_address, mac_address, 6);
-    creation->ip_address = ip_address;
-    creation->device = device;
+    // 連結リストの末尾に新しくエントリを作成
+    candidate->next = (arp_table_entry *) calloc(1, sizeof(arp_table_entry));
+    memcpy(candidate->next->mac_address, mac_address, 6);
+    candidate->next->ip_address = ip_address;
+    candidate->next->device = device;
 
-    candidate->next = creation;
 }
 
 /**
@@ -58,21 +56,25 @@ void add_arp_table_entry(net_device *device, uint8_t *mac_address, uint32_t ip_a
  * @return
  */
 arp_table_entry *search_arp_table_entry(uint32_t ip_address){
+
+    // 初めの候補の場所は、HashテーブルのIPアドレスのハッシュがindexのもの
     arp_table_entry *candidate = &arp_table[ip_address % ARP_TABLE_SIZE];
 
-    if(candidate->ip_address == ip_address){
+    if(candidate->ip_address == ip_address){ // 候補のエントリが検索しているIPアドレスの物だったら
         return candidate;
-    }else if(candidate->ip_address == 0){
+    }else if(candidate->ip_address == 0){ // 候補のエントリが登録されていなかったら
         return nullptr;
     }
 
+    // 候補のエントリが検索しているIPアドレスの物でなかった場合、そのエントリの連結リストを調べる
     while(candidate->next != nullptr){
         candidate = candidate->next;
-        if(candidate->ip_address == ip_address){
+        if(candidate->ip_address == ip_address){ // 連結リストの中に検索しているIPアドレスの物があったら
             return candidate;
         }
     }
 
+    // 連結リストの中に見つからなかったら
     return nullptr;
 }
 
@@ -81,22 +83,21 @@ arp_table_entry *search_arp_table_entry(uint32_t ip_address){
  */
 void dump_arp_table_entry(){
 
-    printf("|-----IP ADDR-----|------MAC ADDR-----|-----INTERFACE-----|-INDEX|\n");
-
+    printf("|---IP ADDRESS----|----MAC ADDRESS----|------DEVICE-------|-INDEX-|\n");
     for(int i = 0; i < ARP_TABLE_SIZE; ++i){
         if(arp_table[i].ip_address == 0){
             continue;
         }
 
-        for(arp_table_entry *a = &arp_table[i]; a; a = a->next){
-            printf("| %15s | %14s | %17s | %04d |\n",
-                   ip_htoa(a->ip_address),
-                   mac_addr_toa(a->mac_address),
-                   a->device->ifname, i);
+        // エントリの連結リストを順に出力する
+        for(arp_table_entry *entry = &arp_table[i]; entry; entry = entry->next){
+            printf("| %15s | %14s | %17s |  %04d |\n",
+                   ip_htoa(entry->ip_address),
+                   mac_addr_toa(entry->mac_address),
+                   entry->device->ifname, i);
         }
     }
-
-    printf("|-----------------|-------------------|-------------------|------|\n");
+    printf("|-----------------|-------------------|-------------------|-------|\n");
 }
 
 /**
@@ -111,8 +112,8 @@ void send_arp_request(net_device *device, uint32_t search_ip){
     auto *arp_buf = reinterpret_cast<arp_ip_to_ethernet *>(arp_my_buf->buffer);
     arp_buf->htype = htons(ARP_HTYPE_ETHERNET);
     arp_buf->ptype = htons(ETHERNET_TYPE_IP);
-    arp_buf->hlen = 0x06;
-    arp_buf->plen = 0x04;
+    arp_buf->hlen = ETHERNET_ADDRESS_LEN;
+    arp_buf->plen = IP_ADDRESS_LEN;
     arp_buf->op = htons(ARP_OPERATION_CODE_REQUEST);
     memcpy(arp_buf->sha, device->mac_address, 6);
     arp_buf->spa = htonl(device->ip_dev->address);
@@ -184,9 +185,9 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *packet){
             reply_buf->op = htons(ARP_OPERATION_CODE_REPLY);
 
             // 返答の情報を書き込む
-            memcpy(reply_buf->sha, dev->mac_address, 6);
+            memcpy(reply_buf->sha, dev->mac_address, ETHERNET_ADDRESS_LEN);
             reply_buf->spa = htonl(dev->ip_dev->address);
-            memcpy(reply_buf->tha, packet->sha, 6);
+            memcpy(reply_buf->tha, packet->sha, ETHERNET_ADDRESS_LEN);
             reply_buf->tpa = packet->spa;
 
             ethernet_encapsulate_output(dev, packet->sha, reply_my_buf, ETHERNET_TYPE_ARP); // イーサネットで送信
