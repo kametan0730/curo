@@ -43,7 +43,8 @@ void add_arp_table_entry(net_device *device, uint8_t *mac_address, uint32_t ip_a
         }
     }
 
-    arp_table_entry *creation = (arp_table_entry *) calloc(1, sizeof(arp_table_entry));
+    arp_table_entry *creation;
+    creation = (arp_table_entry *) calloc(1, sizeof(arp_table_entry));
     memcpy(creation->mac_address, mac_address, 6);
     creation->ip_address = ip_address;
     creation->device = device;

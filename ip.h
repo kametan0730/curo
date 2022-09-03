@@ -66,6 +66,8 @@ extern binary_trie_node<ip_route_entry> *ip_fib;
 
 void dump_ip_fib();
 
+bool in_subnet(uint32_t subnet_prefix, uint32_t subnet_mask, uint32_t target_address);
+
 struct net_device;
 
 void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len);

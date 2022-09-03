@@ -49,6 +49,18 @@ void dump_ip_fib(){
 }
 
 /**
+ * サブネットにIPアドレスが含まれているか比較
+ * @param subnet_prefix
+ * @param subnet_mask
+ * @param target_address
+ * @return
+ */
+bool in_subnet(uint32_t subnet_prefix, uint32_t subnet_mask, uint32_t target_address){
+    return ((target_address & subnet_mask) == (subnet_prefix & subnet_mask));
+}
+
+
+/**
  * 自分宛のIPパケットの処理
  * @param input_dev
  * @param ip_packet
