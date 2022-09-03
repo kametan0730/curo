@@ -25,7 +25,7 @@
 #include "net.h"
 #include "utils.h"
 
-#define ENABLE_INTERFACES {"router1-host1", "router1-router2", "router1-router4", "router1-router3", "router1-br0"}
+#define IGNORE_INTERFACES {"lo", "bond0", "dummy0", "tunl0", "sit0"}
 
 /**
  * デバイス依存のデータ
@@ -92,11 +92,11 @@ int net_device_poll(net_device *dev){
     return 0;
 }
 
-bool is_enable_interface(const char *ifname){
-    char enable_interfaces[][IF_NAMESIZE] = ENABLE_INTERFACES;
+bool is_ignore_interface(const char *ifname){
+    char ignore_interfaces[][IF_NAMESIZE] = IGNORE_INTERFACES;
 
-    for(int i = 0; i < sizeof(enable_interfaces) / IF_NAMESIZE; i++){
-        if(strcmp(enable_interfaces[i], ifname) == 0){
+    for(int i = 0; i < sizeof(ignore_interfaces) / IF_NAMESIZE; i++){
+        if(strcmp(ignore_interfaces[i], ifname) == 0){
             return true;
         }
     }
@@ -165,8 +165,8 @@ int main(){
             memset(&ifr, 0, sizeof(ifr));
             strcpy(ifr.ifr_name, tmp->ifa_name);
 
-            // 有効化するインターフェースか確認
-            if(!is_enable_interface(tmp->ifa_name)){
+            // 無視するインターフェースか確認
+            if(is_ignore_interface(tmp->ifa_name)){
                 printf("Skipped to enable interface %s\n", tmp->ifa_name);
                 continue;
             }
