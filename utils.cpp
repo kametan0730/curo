@@ -24,6 +24,22 @@ uint32_t swap_byte_order_32(uint32_t v){ // 32ビットのバイトオーダー�
            (v & 0xff000000) >> 24;
 }
 
+uint16_t ntohs(uint16_t v){
+    return swap_byte_order_16(v);
+}
+
+uint16_t htons(uint16_t v){
+    return swap_byte_order_16(v);
+}
+
+uint32_t ntohl(uint32_t v){
+    return swap_byte_order_32(v);
+}
+
+uint32_t htonl(uint32_t v){
+    return swap_byte_order_32(v);
+}
+
 uint8_t ip_string_pool_index = 0;
 char ip_string_pool[4][16]; // 16バイト(xxx.xxx.xxx.xxxの文字数+1)の領域を4つ確保
 

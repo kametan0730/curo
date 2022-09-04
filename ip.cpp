@@ -118,6 +118,11 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
     // 上位プロトコルの処理に移行
     switch(ip_packet->protocol){
         case IP_PROTOCOL_TYPE_ICMP:
+            /*
+            // for book chapter 3
+            LOG_IP("ICMP received!\n");
+            return;
+            */
             return icmp_input(
                     ntohl(ip_packet->src_addr),
                     ntohl(ip_packet->dest_addr),
@@ -370,7 +375,8 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
     for(net_device* dev = net_dev_list; dev; dev = dev->next){
         if(dev->ip_dev == nullptr or dev->ip_dev->address == IP_ADDRESS(0, 0, 0, 0)) continue;
         LOG_IP("%s/%s %s\n", ip_htoa(dev->ip_dev->address), ip_htoa(dev->ip_dev->netmask),  ip_htoa(dest_addr))
-        if(in_subnet_with_mask(dev->ip_dev->address, dev->ip_dev->netmask, dest_addr)){
+        if(in_subnet(dev->ip_dev->address, dev->ip_dev->netmask, dest_addr)){
+            // TODO: イーサネットアドレスを特定して送信
             arp_table_entry* entry;
             entry = search_arp_table_entry(dest_addr);
             if(entry == nullptr){
