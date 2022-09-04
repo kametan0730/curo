@@ -47,8 +47,7 @@ int net_device_transmit(struct net_device *dev, uint8_t *buffer, size_t len){
  * @return
  */
 int net_device_poll(net_device *dev){
-    uint8_t buffer[1550];
-    ssize_t n = recv(((net_device_data *) dev->data)->fd, buffer, sizeof(buffer), 0); // socketから受信
+    ssize_t n = recv(((net_device_data *) dev->data)->fd, dev->recv_buffer, sizeof(dev->recv_buffer), 0); // socketから受信
     if(n == -1){
         if(errno == EAGAIN){
             return 0;
@@ -56,7 +55,7 @@ int net_device_poll(net_device *dev){
             return -1;
         }
     }
-    ethernet_input(dev, buffer, n); // 受信したデータをイーサネットに送る
+    ethernet_input(dev, dev->recv_buffer, n); // 受信したデータをイーサネットに送る
     return 0;
 }
 

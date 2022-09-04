@@ -80,22 +80,20 @@ void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, m
     printf("\n");
 #endif
 
-    uint8_t real_buffer[1550];
     uint16_t total_len = 0;
-
     my_buf *current_buffer = ethernet_header_my_buf;
     while(current_buffer != nullptr){
 
-        if(total_len + current_buffer->len > sizeof(real_buffer)){ // Overflowする場合
+        if(total_len + current_buffer->len > sizeof(device->send_buffer)){ // Overflowする場合
             LOG_ETHERNET("Frame is too long!\n");
         }
 
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
         if(current_buffer->buf_ptr != nullptr){
-            memcpy(&real_buffer[total_len], current_buffer->buf_ptr, current_buffer->len);
+            memcpy(&device->send_buffer[total_len], current_buffer->buf_ptr, current_buffer->len);
         }else{
 #endif
-            memcpy(&real_buffer[total_len], current_buffer->buffer, current_buffer->len);
+            memcpy(&device->send_buffer[total_len], current_buffer->buffer, current_buffer->len);
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
         }
 #endif
@@ -105,7 +103,7 @@ void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, m
     }
 
     // ネットワークデバイスに送信する
-    device->ops.transmit(device, real_buffer, total_len);
+    device->ops.transmit(device, device->send_buffer, total_len);
 
     my_buf::my_buf_free(ethernet_header_my_buf, true); // メモリ開放
 }
