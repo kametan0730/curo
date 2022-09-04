@@ -62,9 +62,17 @@ net_device *get_net_device_by_name(const char *interface){
  */
 void configure(){
     // for chapter 3
-    configure_ip(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
-    configure_ip(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
-    configure_net_route(IP_ADDRESS(192, 168, 2, 0), 24, IP_ADDRESS(192, 168, 0, 2));
+    configure_ip(
+            get_net_device_by_name("router1-host1"),
+            IP_ADDRESS(192, 168, 1, 1),
+            IP_ADDRESS(255, 255, 255, 0));
+    configure_ip(
+            get_net_device_by_name("router1-router2"),
+            IP_ADDRESS(192, 168, 0, 1),
+            IP_ADDRESS(255, 255, 255, 0));
+    configure_net_route(
+            IP_ADDRESS(192, 168, 2, 0), 24,
+            IP_ADDRESS(192, 168, 0, 2));
 
     // for chapter4
     /*
@@ -91,7 +99,7 @@ int net_device_poll(net_device *dev); // 宣言のみ
  * デバイスのプラットフォーム依存のデータ
  */
 struct net_device_data{
-    int fd;
+    int fd; // socketのFile descriptor
 };
 
 /**
@@ -169,8 +177,8 @@ int main(){
             dev->next = next;
 
             // ノンブロッキングに設定
-            int val = fcntl(sock, F_GETFL, 0); // File descriptorのflagを取得
-            fcntl(sock, F_SETFL, val | O_NONBLOCK); // Non blockingのbitをセット
+            int val = fcntl(sock, F_GETFL, 0); // File descriptorのFlagを取得
+            fcntl(sock, F_SETFL, val | O_NONBLOCK); // Non blockingのビットをセット
         }
     }
 
@@ -221,8 +229,10 @@ int main(){
  * @param buf
  * @return
  */
-int net_device_transmit(struct net_device *dev, uint8_t *buffer, size_t len){
-    send(((net_device_data *) dev->data)->fd, buffer, len, 0); // socketを通して送信
+int net_device_transmit(struct net_device *dev,
+        uint8_t *buffer, size_t len){
+    send(((net_device_data *) dev->data)->fd,
+         buffer, len, 0); // socketを通して送信
     return 0;
 }
 
@@ -232,14 +242,28 @@ int net_device_transmit(struct net_device *dev, uint8_t *buffer, size_t len){
  * @return
  */
 int net_device_poll(net_device *dev){
-    ssize_t n = recv(((net_device_data *) dev->data)->fd, dev->recv_buffer, sizeof(dev->recv_buffer), 0); // socketから受信
+    // socketから受信
+    ssize_t n = recv(
+            ((net_device_data *) dev->data)->fd,
+            dev->recv_buffer,
+            sizeof(dev->recv_buffer), 0);
     if(n == -1){
-        if(errno == EAGAIN){
+        if(errno == EAGAIN){ // 受け取るデータが無かったら
             return 0;
         }else{
-            return -1;
+            return -1; // 他のエラーなら
         }
     }
-    ethernet_input(dev, dev->recv_buffer, n); // 受信したデータをイーサネットに送る
+    // 受信したデータをイーサネットに送る
+    ethernet_input(dev, dev->recv_buffer, n);
+
+    /*
+    // for book chapter 2
+    printf("Received %lu bytes from %s: ", n, dev->ifname);
+    for(int i = 0; i < n; ++i){
+        printf("%02x", dev->recv_buffer[i]);
+    }
+    printf("\n");
+    */
     return 0;
 }

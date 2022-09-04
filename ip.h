@@ -37,8 +37,8 @@ struct ip_header{
 struct napt_inside_device;
 
 struct ip_device{
-    uint32_t address = 0;
-    uint32_t netmask = 0;
+    uint32_t address = 0; // デバイスのIPアドレス
+    uint32_t netmask = 0; // サブネットマスク
 #ifdef ENABLE_NAPT
     napt_inside_device *napt_inside_dev = nullptr;
 #endif

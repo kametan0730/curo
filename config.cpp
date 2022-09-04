@@ -1,4 +1,3 @@
-#include <net/if.h>
 #include "config.h"
 
 #include "binary_trie.h"

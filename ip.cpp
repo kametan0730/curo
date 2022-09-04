@@ -132,7 +132,11 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
 
         case IP_PROTOCOL_TYPE_UDP:
 #ifdef ENABLE_ICMP_ERROR
-            send_icmp_destination_unreachable(input_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_DESTINATION_UNREACHABLE_CODE_PORT_UNREACHABLE, ip_packet, len);
+            send_icmp_destination_unreachable(
+                    input_dev->ip_dev->address,
+                    ntohl(ip_packet->src_addr),
+                    ICMP_DESTINATION_UNREACHABLE_CODE_PORT_UNREACHABLE,
+                    ip_packet, len);
 #endif
             return;
         case IP_PROTOCOL_TYPE_TCP:
@@ -182,7 +186,6 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
         LOG_IP("IP header option is not supported\n");
         return;
     }
-
 
     if(ip_packet->dest_addr == IP_ADDRESS_LIMITED_BROADCAST){ // 宛先アドレスがブロードキャストアドレスの場合
         return ip_input_to_ours(input_dev, ip_packet, len); // 自分宛の通信として処理
@@ -362,7 +365,7 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
     ip_buf->total_len = htons(sizeof(ip_header) + total_len);
     ip_buf->protocol = protocol_type; // 8bit
 
-    static uint64_t id = 0;
+    static uint16_t id = 0;
     ip_buf->identify = id++;
     ip_buf->frag_offset = 0;
     ip_buf->ttl = 0xff;

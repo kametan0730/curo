@@ -4,6 +4,13 @@ curo = curonos - nos
 curo is a software router
 
 ## Functions
+
+### Interface
+
+- [x] Raw socket with PF_PACKET
+- [ ] DPDK(Data Plane Development Kit)
+
+### Network
 - [x] ARP Reply
 - [x] ARP Request
 - [x] Unlimited IP Routing Table

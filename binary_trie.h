@@ -25,9 +25,7 @@ struct binary_trie_node{ // 二分トライ木構造のノード
  */
 template<typename DATA_TYPE>
 void binary_trie_add(binary_trie_node<DATA_TYPE> *root, uint32_t prefix, uint32_t prefix_len, DATA_TYPE *data){
-
     binary_trie_node<DATA_TYPE> *current = root; // ルートノードから辿る
-
     // 枝を辿る
     for(int i = 1; i <= prefix_len; ++i){
         if((prefix >> (IP_BIT_LEN - i)) & 0x01){ // 上からiビット目が1だったら
@@ -49,7 +47,7 @@ void binary_trie_add(binary_trie_node<DATA_TYPE> *root, uint32_t prefix, uint32_
         }
     }
 
-    current->data = data; //
+    current->data = data; // データをセット
 }
 
 /**
@@ -61,10 +59,8 @@ void binary_trie_add(binary_trie_node<DATA_TYPE> *root, uint32_t prefix, uint32_
  */
 template<typename DATA_TYPE>
 DATA_TYPE *binary_trie_search(binary_trie_node<DATA_TYPE> *root, uint32_t prefix){ // 検索
-
     binary_trie_node<DATA_TYPE> *current = root; // ルートノードから辿る
     DATA_TYPE* result = nullptr;
-
     // 検索するIPアドレスと比較して1ビットずつ辿っていく
     for(int i = 1; i <= IP_BIT_LEN; ++i){
         if(current->data != nullptr){
