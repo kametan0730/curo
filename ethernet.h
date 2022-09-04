@@ -10,6 +10,7 @@
 
 #define ETHERNET_HEADER_SIZE 14
 #define ETHERNET_ADDRESS_LEN 6
+
 const uint8_t ETHERNET_ADDRESS_BROADCAST[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 struct ethernet_header{

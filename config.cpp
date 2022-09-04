@@ -15,7 +15,6 @@
  * @param next_hop
  */
 void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop){
-
     uint32_t mask = 0xffffffff;
     mask <<= (32 - prefix_len);
 

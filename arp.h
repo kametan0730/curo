@@ -11,6 +11,8 @@
 #define ARP_OPERATION_CODE_REQUEST  0x0001
 #define ARP_OPERATION_CODE_REPLY    0x0002
 
+#define ARP_ETHERNET_PACKET_LEN 46
+
 #define ARP_TABLE_SIZE 1111
 
 struct net_device;
@@ -19,8 +21,6 @@ struct arp_table_entry{
     uint8_t mac_address[6];
     uint32_t ip_address;
     net_device *device;
-    bool is_expired;
-    uint64_t expired_at;
     arp_table_entry *next;
 };
 
@@ -30,7 +30,7 @@ arp_table_entry *search_arp_table_entry(uint32_t ip_address);
 
 void dump_arp_table_entry();
 
-void send_arp_request(net_device *device, uint32_t ip);
+void send_arp_request(net_device *device, uint32_t ip_address);
 
 struct arp_ip_to_ethernet{
     uint16_t htype;

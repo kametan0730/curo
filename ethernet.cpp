@@ -15,7 +15,6 @@
  * @param len 受信したデータの長さ
  */
 void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
-
     // 送られてきた通信をイーサネットのフレームとして解釈する
     auto *header = reinterpret_cast<ethernet_header *>(buffer);
     uint16_t ethernet_type = ntohs(header->type); // イーサネットタイプを抜き出すし、ホストバイトオーダーに変換

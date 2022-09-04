@@ -12,35 +12,33 @@
 void dump_napt_tables(){
 #ifdef ENABLE_NAPT
     printf("|-PROTO-|---------LOCAL---------|--------GLOBAL---------|\n");
-    net_device *a;
-    for(a = net_dev_list; a; a = a->next){
-        if(a->ip_dev != nullptr and a->ip_dev->napt_inside_dev != nullptr){
-
+    for(net_device *dev = net_dev_list; dev; dev = dev->next){
+        if(dev->ip_dev != nullptr and dev->ip_dev->napt_inside_dev != nullptr){
             for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
-                if(a->ip_dev->napt_inside_dev->entries->tcp[i].global_port != 0){
+                if(dev->ip_dev->napt_inside_dev->entries->tcp[i].global_port != 0){
                     printf("|  TCP  | %15s:%05d | %15s:%05d |\n",
-                           ip_htoa(a->ip_dev->napt_inside_dev->entries->tcp[i].local_address),
-                           a->ip_dev->napt_inside_dev->entries->tcp[i].local_port,
-                           ip_htoa(a->ip_dev->napt_inside_dev->entries->tcp[i].global_address),
-                           a->ip_dev->napt_inside_dev->entries->tcp[i].global_port
+                           ip_htoa(dev->ip_dev->napt_inside_dev->entries->tcp[i].local_address),
+                           dev->ip_dev->napt_inside_dev->entries->tcp[i].local_port,
+                           ip_htoa(dev->ip_dev->napt_inside_dev->entries->tcp[i].global_address),
+                           dev->ip_dev->napt_inside_dev->entries->tcp[i].global_port
                     );
                 }
-                if(a->ip_dev->napt_inside_dev->entries->udp[i].global_port != 0){
+                if(dev->ip_dev->napt_inside_dev->entries->udp[i].global_port != 0){
                     printf("|  UDP  | %15s:%05d | %15s:%05d |\n",
-                           ip_htoa(a->ip_dev->napt_inside_dev->entries->udp[i].local_address),
-                           a->ip_dev->napt_inside_dev->entries->udp[i].local_port,
-                           ip_htoa(a->ip_dev->napt_inside_dev->entries->udp[i].global_address),
-                           a->ip_dev->napt_inside_dev->entries->udp[i].global_port
+                           ip_htoa(dev->ip_dev->napt_inside_dev->entries->udp[i].local_address),
+                           dev->ip_dev->napt_inside_dev->entries->udp[i].local_port,
+                           ip_htoa(dev->ip_dev->napt_inside_dev->entries->udp[i].global_address),
+                           dev->ip_dev->napt_inside_dev->entries->udp[i].global_port
                     );
                 }
             }
             for(int i = 0; i < NAPT_ICMP_ID_SIZE; ++i){
-                if(a->ip_dev->napt_inside_dev->entries->icmp[i].local_address != 0){
+                if(dev->ip_dev->napt_inside_dev->entries->icmp[i].local_address != 0){
                     printf("|  ICMP | %15s:%05d | %15s:%05d |\n",
-                           ip_htoa(a->ip_dev->napt_inside_dev->entries->icmp[i].local_address),
-                           a->ip_dev->napt_inside_dev->entries->icmp[i].local_port,
-                           ip_htoa(a->ip_dev->napt_inside_dev->entries->icmp[i].global_address),
-                           a->ip_dev->napt_inside_dev->entries->icmp[i].global_port
+                           ip_htoa(dev->ip_dev->napt_inside_dev->entries->icmp[i].local_address),
+                           dev->ip_dev->napt_inside_dev->entries->icmp[i].local_port,
+                           ip_htoa(dev->ip_dev->napt_inside_dev->entries->icmp[i].global_address),
+                           dev->ip_dev->napt_inside_dev->entries->icmp[i].global_port
                     );
                 }
             }
@@ -162,7 +160,6 @@ bool napt_exec(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, n
     }else{
         ip_packet->src_addr = htonl(napt_dev->outside_address);
         if(proto == napt_protocol::icmp){ // ICMP
-            //LOG_NAT("Address port translation executed %s:%d => %s:%d\n", inet_ntoa(ip_packet->src_addr), ntohs(napt_packet->icmp.identify), inet_htoa(napt_dev->outside_address), entry->global_port);
             napt_packet->icmp.identify = htons(entry->global_port);
         }else{ // UDP/TCP
             napt_packet->src_port = htons(entry->global_port);
@@ -185,7 +182,6 @@ bool napt_exec(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, n
  * @return
  */
 napt_entry *get_napt_entry_by_global(napt_entries *entries, napt_protocol proto, uint32_t address, uint16_t port){
-
     if(proto == napt_protocol::udp){ // UDPの場合
         if(entries->udp[port - NAPT_GLOBAL_PORT_MIN].global_address == address and entries->udp[port - NAPT_GLOBAL_PORT_MIN].global_port == port){
             return &entries->udp[port - NAPT_GLOBAL_PORT_MIN];
@@ -213,9 +209,7 @@ napt_entry *get_napt_entry_by_global(napt_entries *entries, napt_protocol proto,
  * @return
  */
 napt_entry *get_napt_entry_by_local(napt_entries *entries, napt_protocol proto, uint32_t address, uint16_t port){
-
     if(proto == napt_protocol::udp){ // UDPの場合
-
         // UDPのNATテーブルをローカルIPアドレス, ローカルポートで検索する
         for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
             if(entries->udp[i].local_address == address and entries->udp[i].local_port == port){
@@ -223,7 +217,6 @@ napt_entry *get_napt_entry_by_local(napt_entries *entries, napt_protocol proto, 
             }
         }
     }else if(proto == napt_protocol::tcp){ // TCPの場合
-
         // TCPのNATテーブルをローカルIPアドレス, ローカルポートで検索する
         for(int i = 0; i < NAPT_GLOBAL_PORT_SIZE; ++i){
             if(entries->tcp[i].local_address == address and entries->tcp[i].local_port == port){
@@ -231,7 +224,6 @@ napt_entry *get_napt_entry_by_local(napt_entries *entries, napt_protocol proto, 
             }
         }
     }else if(proto == napt_protocol::icmp){ // ICMPの場合
-
         // ICMPのNATテーブルをローカルIPアドレス、ICMPのIDで検索する
         for(int i = 0; i < NAPT_ICMP_ID_SIZE; ++i){
             if(entries->icmp[i].local_address == address and entries->icmp[i].local_port == port){
