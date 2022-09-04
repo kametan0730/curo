@@ -131,9 +131,13 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
                     );
 
         case IP_PROTOCOL_TYPE_UDP:
+#ifdef ENABLE_ICMP_ERROR
+            send_icmp_destination_unreachable(input_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_DESTINATION_UNREACHABLE_CODE_PORT_UNREACHABLE, ip_packet, len);
+#endif
+            return;
         case IP_PROTOCOL_TYPE_TCP:
-            // まだこのルータにはUDP/TCPを扱う機能はない
-            break;
+            // まだこのルータにはTCPを扱う機能はない
+            return;
 
         default:
 

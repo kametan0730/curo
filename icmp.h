@@ -12,23 +12,23 @@ struct icmp_header{
     uint8_t type;
     uint8_t code;
     uint16_t checksum;
-};
+} __attribute__((packed));
 
 struct icmp_echo{
     uint16_t identify;
     uint16_t sequence;
     uint8_t data[];
-};
+} __attribute__((packed));
 
 struct icmp_destination_unreachable{
     uint32_t unused;
     uint8_t data[];
-};
+} __attribute__((packed));
 
 struct icmp_time_exceeded{
     uint32_t unused;
     uint8_t data[];
-};
+} __attribute__((packed));
 
 struct icmp_message{
     icmp_header header;
