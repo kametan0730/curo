@@ -113,7 +113,7 @@ void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code
     time_exceeded->header.checksum = 0;
     time_exceeded->time_exceeded.unused = 0;
     memcpy(time_exceeded->time_exceeded.data, error_ip_buffer, sizeof(ip_header) + 8);
-    time_exceeded->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(time_exceeded_my_buf), time_exceeded_my_buf->len);
+    time_exceeded->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(time_exceeded_my_buf->buffer),time_exceeded_my_buf->len);
 
     ip_encapsulate_output(dest_addr, src_addr, time_exceeded_my_buf, IP_PROTOCOL_TYPE_ICMP);
 }
