@@ -63,3 +63,30 @@ const char *mac_addr_toa(const uint8_t *addr){
             addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
     return mac_addr_string_pool[mac_addr_string_pool_index];
 }
+
+/**
+ * Checksumの計算
+ * @param buffer
+ * @param count
+ * @param start
+ * @return
+ */
+uint16_t checksum_16(uint16_t *buffer, size_t count, uint16_t start){
+    uint32_t sum = start;
+
+    // まず16ビット毎に足す
+    while(count > 1){
+        sum += *buffer++;
+        count -= 2;
+    }
+
+    // もし1バイト余ってたら足す
+    if(count > 0)
+        sum += *(uint8_t *) buffer;
+
+    // あふれた桁を折り返して足す
+    while(sum >> 16)
+        sum = (sum & 0xffff) + (sum >> 16);
+
+    return ~sum; // 論理否定(NOT)をとる
+}

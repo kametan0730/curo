@@ -50,7 +50,6 @@ struct my_buf{
     }
 };
 
-uint16_t checksum_16(uint16_t *buffer, size_t count, uint16_t start = 0);
 uint16_t checksum_16_my_buf(my_buf *buffer, uint16_t start = 0);
 
 

@@ -361,7 +361,7 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
     ip_buf->header_checksum = 0;
     ip_buf->dest_addr = htonl(dest_addr);
     ip_buf->src_addr = htonl(src_addr);
-    ip_buf->header_checksum = checksum_16_my_buf(ip_my_buf);
+    ip_buf->header_checksum = checksum_16(reinterpret_cast<uint16_t *>(ip_my_buf->buffer), ip_my_buf->len);
 
     ip_output(src_addr, dest_addr, ip_my_buf);
 
