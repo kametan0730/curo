@@ -33,15 +33,15 @@ void dump_arp_table_entry();
 void send_arp_request(net_device *device, uint32_t ip_address);
 
 struct arp_ip_to_ethernet{
-    uint16_t htype;
-    uint16_t ptype;
-    uint8_t hlen;
-    uint8_t plen;
-    uint16_t op;
-    uint8_t sha[6];
-    uint32_t spa;
-    uint8_t tha[6];
-    uint32_t tpa;
+    uint16_t htype; // ハードウェアタイプ
+    uint16_t ptype; // プロトコルタイプ
+    uint8_t hlen; //ハードウェアアドレス帳
+    uint8_t plen; // プロトコルアドレス帳
+    uint16_t op; // オペレーションコード
+    uint8_t sha[6]; // 送信者のハードウェアアドレス
+    uint32_t spa; // 送信者のプロトコルアドレス
+    uint8_t tha[6]; // ターゲットのハードウェアアドレス
+    uint32_t tpa; // ターゲットのプロトコルアドレス
 } __attribute__((packed));
 
 void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len);
