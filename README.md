@@ -1,14 +1,18 @@
 # curo
 curo = curonos - nos
 
+curo is a software router
+
 ## Functions
 - [x] ARP Reply
 - [x] ARP Request
 - [x] Unlimited IP Routing Table
 - [x] IP Forwarding
+- [x] ICMP Echo Reply
+- [x] ICMP Time Exceeded
+- [x] ICMP Destination Unreachable
 - [x] NAPT (UDP,TCP,ICMP(Query))
 - [ ] NAPT (ICMP(Error))
-
 
 ## Build
 ```shell
@@ -17,7 +21,6 @@ git clone https://github.com/kametan0730/curo.git
 cd curo
 make all
 ```
-
 
 ## Example
 ### 0. Download sources and build
@@ -94,5 +97,5 @@ make run
 sudo ip netns exec host1 iperf3 -s
 ```
 ```shell
-sudo ip netns exec host1 iperf3 -c 192.168.1.2
+sudo ip netns exec host2 iperf3 -c 192.168.1.2
 ```
