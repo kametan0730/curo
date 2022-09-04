@@ -72,12 +72,14 @@ void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, m
 
     upper_layer_buffer->add_header(ethernet_header_my_buf); // 上位プロトコルから受け取ったバッファにヘッダをつける
 
+#ifdef DEBUG_ETHERNET
 #if DEBUG_ETHERNET > 1
-    printf("[ETHER] Transmit buffer: ");
+    printf("[ETHER] Sending buffer: ");
     for (int i = 0; i < ethernet_header_my_buf->len; ++i) {
         printf("%02x", ethernet_header_my_buf->buffer[i]);
     }
     printf("\n");
+#endif
 #endif
 
     uint16_t total_len = 0;

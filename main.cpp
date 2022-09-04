@@ -19,45 +19,11 @@
 #include "net.h"
 #include "utils.h"
 
+/**
+ * 無視するインターフェースたち
+ * 中にはMACアドレスを持たないものなど、このプログラムで使うとエラーを引き起こすものもある
+ */
 #define IGNORE_INTERFACES {"lo", "bond0", "dummy0", "tunl0", "sit0"}
-
-/**
- * デバイスのプラットフォーム依存のデータ
- */
-struct net_device_data{
-    int fd;
-};
-
-/**
- * ネットデバイスの送信処理
- * @param dev
- * @param buf
- * @return
- */
-int net_device_transmit(struct net_device *dev, uint8_t *buffer, size_t len){
-
-    send(((net_device_data *) dev->data)->fd, buffer, len, 0); // socketを通して送信
-
-    return 0;
-}
-
-/**
- * ネットワークデバイスの受信処理
- * @param dev
- * @return
- */
-int net_device_poll(net_device *dev){
-    ssize_t n = recv(((net_device_data *) dev->data)->fd, dev->recv_buffer, sizeof(dev->recv_buffer), 0); // socketから受信
-    if(n == -1){
-        if(errno == EAGAIN){
-            return 0;
-        }else{
-            return -1;
-        }
-    }
-    ethernet_input(dev, dev->recv_buffer, n); // 受信したデータをイーサネットに送る
-    return 0;
-}
 
 /**
  * 無視するデバイスかどうかを返す
@@ -117,6 +83,16 @@ void configure(){
     configure_ip_napt(get_net_device_by_name("router1-br0"), get_net_device_by_name("router1-router2"));
     */
 }
+
+int net_device_transmit(struct net_device *dev, uint8_t *buffer, size_t len); // 宣言のみ
+int net_device_poll(net_device *dev); // 宣言のみ
+
+/**
+ * デバイスのプラットフォーム依存のデータ
+ */
+struct net_device_data{
+    int fd;
+};
 
 /**
  * エントリーポイント
@@ -239,5 +215,34 @@ int main(){
         }
     }
 
+    return 0;
+}
+
+/**
+ * ネットデバイスの送信処理
+ * @param dev
+ * @param buf
+ * @return
+ */
+int net_device_transmit(struct net_device *dev, uint8_t *buffer, size_t len){
+    send(((net_device_data *) dev->data)->fd, buffer, len, 0); // socketを通して送信
+    return 0;
+}
+
+/**
+ * ネットワークデバイスの受信処理
+ * @param dev
+ * @return
+ */
+int net_device_poll(net_device *dev){
+    ssize_t n = recv(((net_device_data *) dev->data)->fd, dev->recv_buffer, sizeof(dev->recv_buffer), 0); // socketから受信
+    if(n == -1){
+        if(errno == EAGAIN){
+            return 0;
+        }else{
+            return -1;
+        }
+    }
+    ethernet_input(dev, dev->recv_buffer, n); // 受信したデータをイーサネットに送る
     return 0;
 }
