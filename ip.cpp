@@ -183,12 +183,6 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
         return;
     }
 
-    if(ip_packet->ttl <= 1){ // TTLが1以下ならドロップ
-#ifdef ENABLE_ICMP_ERROR
-        send_icmp_time_exceeded(input_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED, buffer, len);
-#endif
-        return;
-    }
 
     if(ip_packet->dest_addr == IP_ADDRESS_LIMITED_BROADCAST){ // 宛先アドレスがブロードキャストアドレスの場合
         return ip_input_to_ours(input_dev, ip_packet, len); // 自分宛の通信として処理
@@ -231,6 +225,13 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     if(route == nullptr){ // 宛先までの経路がなかったらパケットを破棄
         LOG_IP("No route to %s\n", ip_htoa(ntohl(ip_packet->dest_addr)));
         // Drop packet
+        return;
+    }
+
+    if(ip_packet->ttl <= 1){ // TTLが1以下ならドロップ
+#ifdef ENABLE_ICMP_ERROR
+        send_icmp_time_exceeded(input_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED, buffer, len);
+#endif
         return;
     }
 
