@@ -194,8 +194,8 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     // 宛先IPアドレスをルータが持ってるか調べる
     for(net_device *dev = net_dev_list; dev; dev = dev->next){
         if(dev->ip_dev->address != IP_ADDRESS(0, 0, 0, 0)){
-            // 宛先IPアドレスがルータの持っているIPアドレスの時の処理
-            if(dev->ip_dev->address == ntohl(ip_packet->dest_addr) or dev->ip_dev->netmask == ntohl(ip_packet->dest_addr)){
+            // 宛先IPアドレスがルータの持っているIPアドレス or ディレクティッド・ブロードキャストアドレスの時の処理
+            if(dev->ip_dev->address == ntohl(ip_packet->dest_addr) or dev->ip_dev->broadcast == ntohl(ip_packet->dest_addr)){
                 return ip_input_to_ours(dev, ip_packet, len); // 自分宛の通信として処理
             }
         }
