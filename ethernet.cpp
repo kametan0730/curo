@@ -81,10 +81,9 @@ void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, m
 #endif
 #endif
 
-    uint16_t total_len = 0;
+    size_t total_len = 0;
     my_buf *current_buffer = ethernet_header_my_buf;
     while(current_buffer != nullptr){
-
         if(total_len + current_buffer->len > sizeof(device->send_buffer)){ // Overflowする場合
             LOG_ETHERNET("Frame is too long!\n");
         }
@@ -98,7 +97,6 @@ void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, m
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
         }
 #endif
-
         total_len += current_buffer->len;
         current_buffer = current_buffer->next_my_buf;
     }

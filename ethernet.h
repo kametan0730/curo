@@ -1,7 +1,7 @@
 #ifndef CURO_ETHERNET_H
 #define CURO_ETHERNET_H
 
-#include <iostream>
+#include <cstdio>
 #include "net.h"
 
 #define ETHERNET_TYPE_IP 0x0800

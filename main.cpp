@@ -1,8 +1,10 @@
 #include <cstdint>
 #include <fcntl.h>
 #include <ifaddrs.h>
+#include <iostream>
 #include <termios.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <net/if.h>
 #include <netpacket/packet.h>
@@ -197,10 +199,8 @@ int main(){
     attr.c_cc[VMIN] = 1;
     tcsetattr(0, TCSANOW, &attr);
     fcntl(0, F_SETFL, O_NONBLOCK); // 標準入力にノンブロッキングの設定
-
 #endif
     while(true){
-
 #ifdef ENABLE_COMMAND
         char input = getchar();
         if(input != -1){
@@ -213,7 +213,6 @@ int main(){
             dev->ops.poll(dev);
         }
     }
-
     return 0;
 }
 

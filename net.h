@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include <iostream>
 
 struct net_device;
 
