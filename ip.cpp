@@ -289,7 +289,6 @@ void ip_output_to_host(net_device *dev, uint32_t src_addr, uint32_t dest_addr, m
  * @param buffer
  */
 void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
-
     arp_table_entry *entry = search_arp_table_entry(next_hop); // ARPテーブルの検索
 
     if(!entry){  // ARPエントリが無かったら
@@ -317,7 +316,6 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
  * @param buffer
  */
 void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
-
     ip_route_entry *route = binary_trie_search(ip_fib, dest_addr); // 経路を検索
     if(route == nullptr){ // 経路が見つからなかったら
         LOG_IP("No route to %s\n", ip_htoa(dest_addr));
