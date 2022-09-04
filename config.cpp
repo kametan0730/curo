@@ -13,7 +13,7 @@
  * @param prefix_len
  * @param next_hop
  */
-void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop){
+void configure_ip_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop){
     uint32_t mask = 0xffffffff;
     mask <<= (32 - prefix_len);
 
@@ -31,7 +31,7 @@ void configure_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_hop
  * @param address
  * @param netmask
  */
-void configure_ip(net_device *dev, uint32_t address, uint32_t netmask){
+void configure_ip_address(net_device *dev, uint32_t address, uint32_t netmask){
     if(dev == nullptr){
         LOG_ERROR("Configure net device not found\n");
         exit(1);
@@ -41,6 +41,7 @@ void configure_ip(net_device *dev, uint32_t address, uint32_t netmask){
     dev->ip_dev = (ip_device *) calloc(1, sizeof(ip_device));
     dev->ip_dev->address = address;
     dev->ip_dev->netmask = netmask;
+    dev->ip_dev->broadcast = (address & netmask) | (~netmask);
 
     // IPアドレスを設定すると同時に直接接続ルートを設定する
     ip_route_entry *ire;
