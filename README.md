@@ -29,7 +29,7 @@ cd curo
 make all
 ```
 
-## Example
+## Example (Raw socket with PF_PACKET)
 ### 0. Download sources and build
 
 ### 1. Create environment with network namespace

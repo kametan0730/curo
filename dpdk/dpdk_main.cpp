@@ -41,9 +41,7 @@ struct net_device_data{
 
 
 /* Main functional part of port initialization. 8< */
-static inline int
-port_init(uint16_t port, struct rte_mempool *mbuf_pool)
-{
+static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool){
 	struct rte_eth_conf port_conf;
 	const uint16_t rx_rings = 1, tx_rings = 1;
 	uint16_t nb_rxd = RX_RING_SIZE;
@@ -117,10 +115,9 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool)
     dev->ops.transmit = net_device_transmit; // 送信用の関数を設定
     dev->ops.poll = net_device_poll; // 受信用の関数を設定
 
-    sprintf(dev->ifname, "dpdk%d", port);
-    //strcpy(dev->ifname, "dpdk"); // net_deviceにインターフェース名をセット
+    sprintf(dev->ifname, "dpdk%d", port); // net_deviceにインターフェース名(dpdkX)をセット
     memcpy(dev->mac_address, addr.addr_bytes, 6); // net_deviceにMACアドレスをセット
-    ((net_device_data *) dev->data)->port = port;
+    ((net_device_data *) dev->data)->port = port; // プラットフォーム依存データをセットｓ
 
     printf("Created dev %s port %d address %s \n", dev->ifname, port, mac_addr_toa(dev->mac_address));
 
@@ -162,9 +159,7 @@ net_device *get_net_device_by_name(const char *interface){
  */
 
  /* Basic forwarding application lcore. 8< */
-static __rte_noreturn void
-lcore_main(void)
-{
+static __rte_noreturn void lcore_main(void){
 	uint16_t port;
 
 	/*
@@ -211,9 +206,7 @@ lcore_main(void)
  * The main function, which does initialization and calls the per-lcore
  * functions.
  */
-int
-main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
 	unsigned nb_ports;
 	uint16_t portid;
 
@@ -228,8 +221,8 @@ main(int argc, char *argv[])
 
 	/* Check that there is an even number of ports to send/receive on. */
 	nb_ports = rte_eth_dev_count_avail();
-	if (nb_ports < 2 || (nb_ports & 1))
-		rte_exit(EXIT_FAILURE, "Error: number of ports must be even\n");
+	if (nb_ports == 0)
+		rte_exit(EXIT_FAILURE, "Error: no network device found\n");
 
 	/* Creates a new mempool in memory to hold the mbufs. */
 
