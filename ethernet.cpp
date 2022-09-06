@@ -53,12 +53,12 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
  * イーサネットにカプセル化して送信
  * @param device 送信するデバイス
  * @param dest_addr 宛先アドレス
- * @param upper_layer_buffer
- * @param protocol_type
+ * @param upper_layer_buffer 包んで送信するmy_buf構造体の先頭
+ * @param ethernet_type イーサネットタイプ
  */
-void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, my_buf *upper_layer_buffer, uint16_t protocol_type){
+void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, my_buf *upper_layer_buffer, uint16_t ethernet_type){
     LOG_ETHERNET("Sending ethernet frame type %04x from %s to %s\n",
-                 protocol_type, mac_addr_toa(device->mac_address),
+                 ethernet_type, mac_addr_toa(device->mac_address),
                  mac_addr_toa(dest_addr));
 
     my_buf *ethernet_header_my_buf = my_buf::create(ETHERNET_HEADER_SIZE); // イーサネットヘッダ長分のバッファを確保
@@ -67,7 +67,7 @@ void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, m
     // イーサネットヘッダの設定
     memcpy(ether_header->src_address, device->mac_address, 6); // 送信元アドレスにはデバイスのアドレスを設定
     memcpy(ether_header->dest_address, dest_addr, 6); // `宛先アドレスの設定
-    ether_header->type = htons(protocol_type); // イーサネットタイプの設定
+    ether_header->type = htons(ethernet_type); // イーサネットタイプの設定
 
     upper_layer_buffer->add_header(ethernet_header_my_buf); // 上位プロトコルから受け取ったバッファにヘッダをつける
 
@@ -81,24 +81,26 @@ void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, m
 #endif
 #endif
 
+    // 全長を計算しながらメモリにバッファを展開する
     size_t total_len = 0;
-    my_buf *current_buffer = ethernet_header_my_buf;
-    while(current_buffer != nullptr){
-        if(total_len + current_buffer->len > sizeof(device->send_buffer)){ // Overflowする場合
+    my_buf *current = ethernet_header_my_buf;
+    while(current != nullptr){
+        if(total_len + current->len > sizeof(device->send_buffer)){ // Overflowする場合
             LOG_ETHERNET("Frame is too long!\n");
+            return;
         }
 
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
-        if(current_buffer->buf_ptr != nullptr){
-            memcpy(&device->send_buffer[total_len], current_buffer->buf_ptr, current_buffer->len);
+        if(current->buf_ptr != nullptr){
+            memcpy(&device->send_buffer[total_len], current->buf_ptr, current->len);
         }else{
 #endif
-            memcpy(&device->send_buffer[total_len], current_buffer->buffer, current_buffer->len);
+            memcpy(&device->send_buffer[total_len], current->buffer, current->len);
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
         }
 #endif
-        total_len += current_buffer->len;
-        current_buffer = current_buffer->next_my_buf;
+        total_len += current->len;
+        current = current->next_my_buf;
     }
 
     // ネットワークデバイスに送信する

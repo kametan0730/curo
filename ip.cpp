@@ -308,8 +308,8 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
         my_buf::my_buf_free(buffer, true); // Drop packet
         return;
 
-    }else{ // ARPエントリがあったら
-        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHERNET_TYPE_IP); // イーサネットでカプセル化して送信
+    }else{ // ARPエントリがあり、MACアドレスが得られたら
+        ethernet_encapsulate_output(entry->device,entry->mac_address, buffer, ETHERNET_TYPE_IP); // イーサネットでカプセル化して送信
     }
 }
 
@@ -339,19 +339,19 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
 
 /**
  * IPパケットにカプセル化して送信
- * @param dest_addr
- * @param src_addr
- * @param upper_layer_buffer
- * @param protocol_type
+ * @param dest_addr 送信先のIPアドレス
+ * @param src_addr 送信元のIPアドレス
+ * @param upper_layer_buffer 包んで送信するmy_buf構造体の先頭
+ * @param protocol_type IPプロトコルタイプ
  */
 void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_layer_buffer, uint8_t protocol_type){
 
-    // IPヘッダで必要なIPパケットの全長を算出する
+    // 連結リストをたどってIPヘッダで必要なIPパケットの全長を算出する
     uint16_t total_len = 0;
-    my_buf *current_buffer = upper_layer_buffer;
-    while(current_buffer != nullptr){
-        total_len += current_buffer->len;
-        current_buffer = current_buffer->next_my_buf;
+    my_buf *current = upper_layer_buffer;
+    while(current != nullptr){
+        total_len += current->len;
+        current = current->next_my_buf;
     }
 
     // IPヘッダ用のバッファを確保する

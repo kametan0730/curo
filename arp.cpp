@@ -109,16 +109,17 @@ void send_arp_request(net_device *device, uint32_t ip_address){
     LOG_ARP("Sending arp request via %s for %s\n", device->ifname, ip_htoa(ip_address));
 
     auto *arp_my_buf = my_buf::create(ARP_ETHERNET_PACKET_LEN);
-    auto *arp_buf = reinterpret_cast<arp_ip_to_ethernet *>(arp_my_buf->buffer);
-    arp_buf->htype = htons(ARP_HTYPE_ETHERNET);
-    arp_buf->ptype = htons(ETHERNET_TYPE_IP);
-    arp_buf->hlen = ETHERNET_ADDRESS_LEN;
-    arp_buf->plen = IP_ADDRESS_LEN;
-    arp_buf->op = htons(ARP_OPERATION_CODE_REQUEST);
-    memcpy(arp_buf->sha, device->mac_address, 6);
-    arp_buf->spa = htonl(device->ip_dev->address);
-    arp_buf->tpa = htonl(ip_address);
+    auto *arp_msg = reinterpret_cast<arp_ip_to_ethernet *>(arp_my_buf->buffer);
+    arp_msg->htype = htons(ARP_HTYPE_ETHERNET); // ハードウェアタイプの設定
+    arp_msg->ptype = htons(ETHERNET_TYPE_IP); // プロトコルタイプの設定
+    arp_msg->hlen = ETHERNET_ADDRESS_LEN; // ハードウェアアドレス帳の設定
+    arp_msg->plen = IP_ADDRESS_LEN; // プロトコルアドレス長の設定
+    arp_msg->op = htons(ARP_OPERATION_CODE_REQUEST); // オペレーションコードの設定
+    memcpy(arp_msg->sha, device->mac_address, 6); // 送信者ハードウェアアドレスにデバイスのMACアドレスを設定
+    arp_msg->spa = htonl(device->ip_dev->address); // 送信者プロトコルアドレスにデバイスのIPアドレスを設定
+    arp_msg->tpa = htonl(ip_address); // ターゲットプロトコルアドレスに、探すホストのIPアドレスを設定
 
+    // イーサネットで送信する
     ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, arp_my_buf, ETHERNET_TYPE_ARP);
 }
 
@@ -156,9 +157,13 @@ void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
             // オペレーションコードによって分岐
             if(op == ARP_OPERATION_CODE_REQUEST){
+                // ARPリクエストの受信
                 arp_request_arrives(input_dev, arp_msg);
+                return;
             }else if(op == ARP_OPERATION_CODE_REPLY){
+                // ARPリプライの受信
                 arp_reply_arrives(input_dev, arp_msg);
+                return;
             }
             break;
     }
