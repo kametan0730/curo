@@ -8,16 +8,17 @@
 #include "config.h"
 
 struct my_buf{
-    my_buf *prev_my_buf = nullptr;
-    my_buf *next_my_buf = nullptr;
-    uint32_t len = 0;
+    my_buf *prev_my_buf = nullptr; // 前の連結
+    my_buf *next_my_buf = nullptr; // 後ろの連結
+    uint32_t len = 0; // my_bufに含むバッファの長さ
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
     uint8_t *buf_ptr = nullptr;
 #endif
-    uint8_t buffer[];
+    uint8_t buffer[]; // バッファ
 
     static my_buf *create(uint32_t len){
-        auto *buf = (my_buf *) calloc(1, sizeof(my_buf) + len);
+        auto *buf = (my_buf *) calloc(
+                1,sizeof(my_buf) + len);
         buf->len = len;
         return buf;
     }
@@ -49,8 +50,5 @@ struct my_buf{
         buf->next_my_buf = this;
     }
 };
-
-uint16_t checksum_16_my_buf(my_buf *buffer, uint16_t start = 0);
-
 
 #endif //CURO_MY_BUF_H

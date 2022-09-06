@@ -166,10 +166,10 @@ int main(){
             dev->ops.poll = net_device_poll; // 受信用の関数を設定
 
             strcpy(dev->ifname, tmp->ifa_name); // net_deviceにインターフェース名をセット
-            memcpy(dev->mac_address, &ifr.ifr_hwaddr.sa_data[0], 6); // net_deviceにMACアドレスをセット
+            memcpy(dev->mac_addr, &ifr.ifr_hwaddr.sa_data[0], 6); // net_deviceにMACアドレスをセット
             ((net_device_data *) dev->data)->fd = sock;
 
-            printf("Created dev %s socket %d address %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_address));
+            printf("Created dev %s socket %d address %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_addr));
 
             // net_deviceの連結リストに連結させる
             net_device *next;
@@ -210,8 +210,8 @@ int main(){
 #endif
     while(true){
 #ifdef ENABLE_COMMAND
-        char input = getchar();
-        if(input != -1){
+        int input = getchar(); //
+        if(input != -1){ // なにも入力がなかったら
             if(input == 'a') dump_arp_table_entry();
             else if(input == 'n') dump_napt_tables();
             else if(input == 'r') dump_ip_fib();
@@ -228,8 +228,9 @@ int main(){
 
 /**
  * ネットデバイスの送信処理
- * @param dev
- * @param buf
+ * @param dev 送信に使用するデバイス
+ * @param buffer 送信するバッファ
+ * @param len バッファの長さ
  * @return
  */
 int net_device_transmit(struct net_device *dev,
@@ -241,7 +242,7 @@ int net_device_transmit(struct net_device *dev,
 
 /**
  * ネットワークデバイスの受信処理
- * @param dev
+ * @param dev 受信を試みるデバイス
  * @return
  */
 int net_device_poll(net_device *dev){

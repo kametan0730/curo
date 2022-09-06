@@ -55,7 +55,7 @@ struct net_device;
 struct ip_route_entry{
     ip_route_type type;
     union{
-        net_device *device;
+        net_device *dev;
         uint32_t next_hop;
     };
 };

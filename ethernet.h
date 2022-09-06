@@ -14,15 +14,15 @@
 const uint8_t ETHERNET_ADDRESS_BROADCAST[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 struct ethernet_header{
-    uint8_t dest_address[6];
-    uint8_t src_address[6];
-    uint16_t type;
+    uint8_t dest_addr[6]; // 宛先アドレス
+    uint8_t src_addr[6]; // 送信元アドレス
+    uint16_t type; // イーサタイプ
 } __attribute__((packed));
 
 void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t n);
 
 struct my_buf;
 
-void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, my_buf *buffer, uint16_t protocol_type);
+void ethernet_encapsulate_output(net_device *dev, const uint8_t *dest_addr, my_buf *buffer, uint16_t protocol_type);
 
 #endif //CURO_ETHERNET_H

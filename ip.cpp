@@ -29,7 +29,7 @@ void dump_ip_fib(){
                 printf("%s/%d connected %s\n",
                        ip_htoa(locate_prefix(
                                current_node,
-                               ip_fib)), current_node->depth, current_node->data->device->ifname);
+                               ip_fib)), current_node->depth, current_node->data->dev->ifname);
             }else{
                 printf("%s/%d nexthop %s\n",
                        ip_htoa(locate_prefix(
@@ -187,6 +187,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
         return;
     }
 
+
     if(ip_packet->dest_addr == IP_ADDRESS_LIMITED_BROADCAST){ // 宛先アドレスがブロードキャストアドレスの場合
         return ip_input_to_ours(input_dev, ip_packet, len); // 自分宛の通信として処理
     }
@@ -258,7 +259,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 #endif
 
     if(route->type == connected){ // 直接接続ネットワークの経路なら
-        ip_output_to_host(route->device, ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ip_forward_buf); // hostに直接送信
+        ip_output_to_host(route->dev, ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ip_forward_buf); // hostに直接送信
         return;
     }else if(route->type == network){ // 直接接続ネットワークの経路ではなかったら
         ip_output_to_next_hop(route->next_hop, ip_forward_buf); // next hopに送信
@@ -283,7 +284,7 @@ void ip_output_to_host(net_device *dev, uint32_t src_addr, uint32_t dest_addr, m
         my_buf::my_buf_free(buffer, true); // Drop packet
         return;
     }else{
-        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHER_TYPE_IP); // イーサネットでカプセル化して送信
+        ethernet_encapsulate_output(entry->dev, entry->mac_addr, buffer, ETHER_TYPE_IP); // イーサネットでカプセル化して送信
     }
 }
 
@@ -303,13 +304,13 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
         if(route_to_next_hop == nullptr or route_to_next_hop->type != connected){ // next hopへの到達性が無かったら
             LOG_IP("Next hop %s is not reachable\n", ip_htoa(next_hop));
         }else{
-            send_arp_request(route_to_next_hop->device, next_hop); // ARPリクエストを送信
+            send_arp_request(route_to_next_hop->dev, next_hop); // ARPリクエストを送信
         }
         my_buf::my_buf_free(buffer, true); // Drop packet
         return;
 
     }else{ // ARPエントリがあり、MACアドレスが得られたら
-        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHER_TYPE_IP); // イーサネットでカプセル化して送信
+        ethernet_encapsulate_output(entry->dev, entry->mac_addr, buffer, ETHER_TYPE_IP); // イーサネットでカプセル化して送信
     }
 }
 
@@ -328,7 +329,7 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
     }
 
     if(route->type == connected){ // 直接接続ネットワークだったら
-        ip_output_to_host(route->device, src_addr, dest_addr, buffer);
+        ip_output_to_host(route->dev, src_addr, dest_addr, buffer);
         return;
     }else if(route->type == network){ // 直接つながっていないネットワークだったら
         ip_output_to_next_hop(route->next_hop, buffer);
@@ -391,7 +392,7 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
                 my_buf::my_buf_free(upper_layer_buffer, true);
                 return;
             }
-            ethernet_encapsulate_output(dev, entry->mac_address, ip_my_buf, ETHER_TYPE_IP);
+            ethernet_encapsulate_output(dev, entry->mac_addr, ip_my_buf, ETHER_TYPE_IP);
         }
     }
     */
