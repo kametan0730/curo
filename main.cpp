@@ -11,12 +11,13 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include "binary_trie.h"
-#include "command.h"
 #include "config.h"
 #include "ethernet.h"
+#include "arp.h"
 #include "ip.h"
 #include "log.h"
 #include "my_buf.h"
+#include "napt.h"
 #include "net.h"
 #include "utils.h"
 
@@ -211,7 +212,9 @@ int main(){
 #ifdef ENABLE_COMMAND
         char input = getchar();
         if(input != -1){
-            command_input(input);
+            if(input == 'a') dump_arp_table_entry();
+            else if(input == 'n') dump_napt_tables();
+            else if(input == 'r') dump_ip_fib();
         }
 #endif
 
