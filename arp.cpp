@@ -111,7 +111,7 @@ void send_arp_request(net_device *device, uint32_t ip_address){
     auto *arp_my_buf = my_buf::create(ARP_ETHERNET_PACKET_LEN);
     auto *arp_msg = reinterpret_cast<arp_ip_to_ethernet *>(arp_my_buf->buffer);
     arp_msg->htype = htons(ARP_HTYPE_ETHERNET); // ハードウェアタイプの設定
-    arp_msg->ptype = htons(ETHERNET_TYPE_IP); // プロトコルタイプの設定
+    arp_msg->ptype = htons(ETHER_TYPE_IP); // プロトコルタイプの設定
     arp_msg->hlen = ETHERNET_ADDRESS_LEN; // ハードウェアアドレス帳の設定
     arp_msg->plen = IP_ADDRESS_LEN; // プロトコルアドレス長の設定
     arp_msg->op = htons(ARP_OPERATION_CODE_REQUEST); // オペレーションコードの設定
@@ -120,7 +120,7 @@ void send_arp_request(net_device *device, uint32_t ip_address){
     arp_msg->tpa = htonl(ip_address); // ターゲットプロトコルアドレスに、探すホストのIPアドレスを設定
 
     // イーサネットで送信する
-    ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, arp_my_buf, ETHERNET_TYPE_ARP);
+    ethernet_encapsulate_output(device, ETHERNET_ADDRESS_BROADCAST, arp_my_buf, ETHER_TYPE_ARP);
 }
 
 void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *request); // 宣言のみ
@@ -143,7 +143,7 @@ void arp_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     uint16_t op = ntohs(arp_msg->op);
 
     switch(ntohs(arp_msg->ptype)){
-        case ETHERNET_TYPE_IP:
+        case ETHER_TYPE_IP:
 
             if(arp_msg->hlen != ETHERNET_ADDRESS_LEN){
                 LOG_ARP("Illegal hardware address length\n");
@@ -183,7 +183,7 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *request){
 
             auto reply_msg = reinterpret_cast<arp_ip_to_ethernet *>(reply_my_buf->buffer);
             reply_msg->htype = htons(ARP_HTYPE_ETHERNET);
-            reply_msg->ptype = htons(ETHERNET_TYPE_IP);
+            reply_msg->ptype = htons(ETHER_TYPE_IP);
             reply_msg->hlen = ETHERNET_ADDRESS_LEN; // IPアドレスの長さ
             reply_msg->plen = IP_ADDRESS_LEN; // MACアドレスの長さ
             reply_msg->op = htons(ARP_OPERATION_CODE_REPLY);
@@ -194,7 +194,7 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *request){
             memcpy(reply_msg->tha, request->sha, ETHERNET_ADDRESS_LEN);
             reply_msg->tpa = request->spa;
 
-            ethernet_encapsulate_output(dev, request->sha, reply_my_buf, ETHERNET_TYPE_ARP); // イーサネットで送信
+            ethernet_encapsulate_output(dev, request->sha, reply_my_buf, ETHER_TYPE_ARP); // イーサネットで送信
             add_arp_table_entry(dev, request->sha, ntohl(request->spa)); // ARPリクエストからもエントリを生成
             return;
         }

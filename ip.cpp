@@ -283,7 +283,7 @@ void ip_output_to_host(net_device *dev, uint32_t src_addr, uint32_t dest_addr, m
         my_buf::my_buf_free(buffer, true); // Drop packet
         return;
     }else{
-        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHERNET_TYPE_IP); // イーサネットでカプセル化して送信
+        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHER_TYPE_IP); // イーサネットでカプセル化して送信
     }
 }
 
@@ -309,7 +309,7 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
         return;
 
     }else{ // ARPエントリがあり、MACアドレスが得られたら
-        ethernet_encapsulate_output(entry->device,entry->mac_address, buffer, ETHERNET_TYPE_IP); // イーサネットでカプセル化して送信
+        ethernet_encapsulate_output(entry->device, entry->mac_address, buffer, ETHER_TYPE_IP); // イーサネットでカプセル化して送信
     }
 }
 
@@ -391,7 +391,7 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
                 my_buf::my_buf_free(upper_layer_buffer, true);
                 return;
             }
-            ethernet_encapsulate_output(dev, entry->mac_address, ip_my_buf, ETHERNET_TYPE_IP);
+            ethernet_encapsulate_output(dev, entry->mac_address, ip_my_buf, ETHER_TYPE_IP);
         }
     }
     */

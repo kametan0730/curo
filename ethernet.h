@@ -4,9 +4,9 @@
 #include <cstdio>
 #include "net.h"
 
-#define ETHERNET_TYPE_IP 0x0800
-#define ETHERNET_TYPE_ARP 0x0806
-#define ETHERNET_TYPE_IPv6 0x86dd
+#define ETHER_TYPE_IP 0x0800
+#define ETHER_TYPE_ARP 0x0806
+#define ETHER_TYPE_IPv6 0x86dd
 
 #define ETHERNET_HEADER_SIZE 14
 #define ETHERNET_ADDRESS_LEN 6
