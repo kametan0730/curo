@@ -17,7 +17,7 @@
 void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
     // 送られてきた通信をイーサネットのフレームとして解釈する
     auto *header = reinterpret_cast<ethernet_header *>(buffer);
-    uint16_t ether_type = ntohs(header->type); // イーサネットタイプを抜き出すし、ホストバイトオーダーに変換
+    uint16_t ether_type = ntohs(header->type); // イーサタイプを抜き出すし、ホストバイトオーダーに変換
 
     // 自分のMACアドレス宛てかブロードキャストの通信かを確認する
     if(memcmp(header->dest_address, dev->mac_address, 6) != 0 and
@@ -29,21 +29,21 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
                  ether_type, mac_addr_toa(header->src_address),
                  mac_addr_toa(header->dest_address));
 
-    // イーサネットタイプの値から上位プロトコルを特定する
+    // イーサタイプの値から上位プロトコルを特定する
     switch(ether_type){
-        case ETHER_TYPE_ARP: // イーサネットタイプがARPのものだったら
+        case ETHER_TYPE_ARP: // イーサタイプがARPのものだったら
             return arp_input(
                     dev,
                     buffer + ETHERNET_HEADER_SIZE,
                     len - ETHERNET_HEADER_SIZE
             ); // Ethernetヘッダを外してARP処理へ
-        case ETHER_TYPE_IP: // イーサネットタイプがIPのものだったら
+        case ETHER_TYPE_IP: // イーサタイプがIPのものだったら
             return ip_input(
                     dev,
                     buffer + ETHERNET_HEADER_SIZE,
                     len - ETHERNET_HEADER_SIZE
             ); // Ethernetヘッダを外してIP処理へ
-        default: // 知らないイーサネットタイプだったら
+        default: // 知らないイーサタイプだったら
         LOG_ETHERNET("Received unhandled ether type %04x\n", ether_type);
             return;
     }
@@ -54,7 +54,7 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
  * @param device 送信するデバイス
  * @param dest_addr 宛先アドレス
  * @param upper_layer_buffer 包んで送信するmy_buf構造体の先頭
- * @param ether_type イーサネットタイプ
+ * @param ether_type イーサタイプ
  */
 void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, my_buf *upper_layer_buffer, uint16_t ether_type){
     LOG_ETHERNET("Sending ethernet frame type %04x from %s to %s\n",
@@ -67,7 +67,7 @@ void ethernet_encapsulate_output(net_device *device, const uint8_t *dest_addr, m
     // イーサネットヘッダの設定
     memcpy(ether_header->src_address, device->mac_address, 6); // 送信元アドレスにはデバイスのアドレスを設定
     memcpy(ether_header->dest_address, dest_addr, 6); // `宛先アドレスの設定
-    ether_header->type = htons(ether_type); // イーサネットタイプの設定
+    ether_header->type = htons(ether_type); // イーサタイプの設定
 
     upper_layer_buffer->add_header(ethernet_header_my_buf); // 上位プロトコルから受け取ったバッファにヘッダをつける
 
