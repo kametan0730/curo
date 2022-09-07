@@ -69,7 +69,6 @@ bool in_subnet(uint32_t subnet_prefix, uint32_t subnet_mask, uint32_t target_add
  * @param len
  */
 void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
-
     // フラグメントされているかの確認
     if((ntohs(ip_packet->frag_offset) & IP_FRAG_OFFSET_MASK_OFFSET) != 0 or
        (ntohs(ip_packet->frag_offset) & IP_FRAG_OFFSET_MASK_MF_FLAG)){
@@ -168,7 +167,6 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
  * @param len
  */
 void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
-
     // IPアドレスのついていないインターフェースからの受信は無視
     if(input_dev->ip_dev == nullptr or input_dev->ip_dev->address == 0){
         return;
@@ -196,7 +194,6 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
         LOG_IP("IP header option is not supported\n");
         return;
     }
-
 
     if(ip_packet->dest_addr == IP_ADDRESS_LIMITED_BROADCAST){ // 宛先アドレスがブロードキャストアドレスの場合
         return ip_input_to_ours(input_dev, ip_packet, len); // 自分宛の通信として処理

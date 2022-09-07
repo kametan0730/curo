@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <fcntl.h>
 #include <ifaddrs.h>
-#include <iostream>
 #include <termios.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -16,7 +15,6 @@
 #include "arp.h"
 #include "ip.h"
 #include "log.h"
-#include "my_buf.h"
 #include "nat.h"
 #include "net.h"
 #include "utils.h"
@@ -26,8 +24,7 @@
  * 中にはMACアドレスを持たないものなど、
  * このプログラムで使うとエラーを引き起こすものもある
  */
-#define IGNORE_INTERFACES {"lo", "bond0", \
-"dummy0", "tunl0", "sit0"}
+#define IGNORE_INTERFACES {"lo", "bond0", "dummy0", "tunl0", "sit0"}
 
 /**
  * 無視するデバイスかどうかを返す
@@ -36,7 +33,6 @@
  */
 bool is_ignore_interface(const char *ifname){
     char ignore_interfaces[][IF_NAMESIZE] = IGNORE_INTERFACES;
-
     for(int i = 0; i < sizeof(ignore_interfaces) / IF_NAMESIZE; i++){
         if(strcmp(ignore_interfaces[i], ifname) == 0){
             return true;
@@ -65,7 +61,7 @@ net_device *get_net_device_by_name(const char *name){
  */
 void configure(){
     // for chapter 3
-
+    /*
     configure_ip_address(
             get_net_device_by_name("router1-host1"),
             IP_ADDRESS(192, 168, 1, 1),
@@ -77,8 +73,7 @@ void configure(){
     configure_ip_net_route(
             IP_ADDRESS(192, 168, 2, 0), 24,
             IP_ADDRESS(192, 168, 0, 2));
-
-
+    */
     // for chapter4
     /*
     configure_ip_address(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
@@ -89,12 +84,12 @@ void configure(){
     */
 
     // for chapter 6
-    /*
+
     configure_ip_address(get_net_device_by_name("router1-br0"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip_address(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip_net_route(IP_ADDRESS(192, 168, 2, 0), 24, IP_ADDRESS(192, 168, 0, 2));
     configure_ip_nat(get_net_device_by_name("router1-br0"), get_net_device_by_name("router1-router2"));
-    */
+
 
     /*
     // for wsl
@@ -129,7 +124,6 @@ int main(){
 
     for(ifaddrs *tmp = addrs; tmp; tmp = tmp->ifa_next){
         if(tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET){
-
             // ioctlでコントロールするインターフェースを設定
             memset(&ifr, 0, sizeof(ifr));
             strcpy(ifr.ifr_name, tmp->ifa_name);
@@ -214,7 +208,7 @@ int main(){
     // 入力時にバッファリングせずにすぐ受け取る設定
     termios attr{};
     tcgetattr(0, &attr);
-    attr.c_lflag &= ~(ECHO | ICANON);
+    attr.c_lflag &= ~ICANON;
     attr.c_cc[VTIME] = 0;
     attr.c_cc[VMIN] = 1;
     tcsetattr(0, TCSANOW, &attr);
@@ -222,8 +216,9 @@ int main(){
 #endif
     while(true){
 #ifdef ENABLE_COMMAND
-        int input = getchar(); //
-        if(input != -1){ // なにも入力がなかったら
+        int input = getchar(); // 入力を受け取る
+        if(input != -1){ // 入力があったら
+            printf("\n");
             if(input == 'a') dump_arp_table_entry();
             else if(input == 'r') dump_ip_fib();
             else if(input == 'q') break;
@@ -232,7 +227,6 @@ int main(){
 #endif
         }
 #endif
-
         // デバイスから通信を受信
         for(net_device *dev = net_dev_list; dev; dev = dev->next){
             dev->ops.poll(dev);
@@ -268,7 +262,7 @@ int net_device_poll(net_device *dev){
             recv_buffer,
             sizeof(recv_buffer), 0);
     if(n == -1){
-        if(errno == EAGAIN){ // 受け取るデータが無かったら
+        if(errno == EAGAIN){ // 受け取るデータが無い場合
             return 0;
         }else{
             return -1; // 他のエラーなら
@@ -276,7 +270,6 @@ int net_device_poll(net_device *dev){
     }
     // 受信したデータをイーサネットに送る
     ethernet_input(dev, recv_buffer, n);
-
     /*
     // for book chapter 2
     printf("Received %lu bytes from %s: ",

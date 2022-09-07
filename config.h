@@ -17,8 +17,7 @@
 #define DEBUG_ICMP      1
 #define DEBUG_NAT       1
 
-
-#define ENABLE_MYBUF_NON_COPY_MODE // パケット転送時にバッファのコピーを削減するか
+// #define ENABLE_MYBUF_NON_COPY_MODE // パケット転送時にバッファのコピーを削減するか
 #define ENABLE_NAT // NATを有効にするか
 #define ENABLE_ICMP_ERROR // ICMPエラーを送信するか
 #define ENABLE_COMMAND // 対話的なコマンドを有効化するか
