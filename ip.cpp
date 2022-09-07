@@ -118,7 +118,7 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
                 memcpy(nat_fwd_mybuf->buffer, ip_packet, len);
                 nat_fwd_mybuf->len = len;
 #endif
-                ip_output(ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), nat_fwd_mybuf);
+                ip_output(ntohl(ip_packet->dest_addr), ntohl(ip_packet->src_addr),  nat_fwd_mybuf);
                 return;
             }
         }
