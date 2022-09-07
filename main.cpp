@@ -275,7 +275,7 @@ int net_device_poll(net_device *dev){
     printf("Received %lu bytes from %s: ",
            n, dev->name);
     for(int i = 0; i < n; ++i){
-        printf("%02x", dev->recv_buffer[i]);
+        printf("%02x", recv_buffer[i]);
     }
     printf("\n");
     */
