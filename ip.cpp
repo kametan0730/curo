@@ -111,15 +111,15 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
             }
             if(nat_executed){
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
-                my_buf *nat_fwd_buf = my_buf::create(0);
-                nat_fwd_buf->buf_ptr = (uint8_t *) ip_packet;
-                nat_fwd_buf->len = len;
+                my_buf *nat_fwd_mybuf = my_buf::create(0);
+                nat_fwd_mybuf->buf_ptr = (uint8_t *) ip_packet;
+                nat_fwd_mybuf->len = len;
 #else
-                my_buf* nat_fwd_buf = my_buf::create(len);
-                memcpy(nat_fwd_buf->buffer, ip_packet, len);
-                nat_fwd_buf->len = len;
+                my_buf* nat_fwd_mybuf = my_buf::create(len);
+                memcpy(nat_fwd_mybuf->buffer, ip_packet, len);
+                nat_fwd_mybuf->len = len;
 #endif
-                ip_output(ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), nat_fwd_buf);
+                ip_output(ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), nat_fwd_mybuf);
                 return;
             }
         }
@@ -267,21 +267,21 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
     ip_packet->header_checksum = checksum_16(reinterpret_cast<uint16_t *>(buffer), sizeof(ip_header));
 
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
-    my_buf *ip_forward_buf = my_buf::create(0);
-    ip_forward_buf->buf_ptr = buffer;
-    ip_forward_buf->len = len;
+    my_buf *ip_fwd_mybuf = my_buf::create(0);
+    ip_fwd_mybuf->buf_ptr = buffer;
+    ip_fwd_mybuf->len = len;
 #else
     // my_buf構造にコピー
-    my_buf* ip_forward_buf = my_buf::create(len);
-    memcpy(ip_forward_buf->buffer, buffer, len);
-    ip_forward_buf->len = len;
+    my_buf* ip_fwd_mybuf = my_buf::create(len);
+    memcpy(ip_fwd_mybuf->buffer, buffer, len);
+    ip_fwd_mybuf->len = len;
 #endif
 
     if(route->type == connected){ // 直接接続ネットワークの経路なら
-        ip_output_to_host(route->dev, ntohl(ip_packet->dest_addr), ntohl(ip_packet->src_addr), ip_forward_buf); // hostに直接送信
+        ip_output_to_host(route->dev, ntohl(ip_packet->dest_addr), ntohl(ip_packet->src_addr), ip_fwd_mybuf); // hostに直接送信
         return;
     }else if(route->type == network){ // 直接接続ネットワークの経路ではなかったら
-        ip_output_to_next_hop(route->next_hop, ip_forward_buf); // next hopに送信
+        ip_output_to_next_hop(route->next_hop, ip_fwd_mybuf); // next hopに送信
         return;
     }
 }
@@ -370,7 +370,7 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *payloa
     my_buf *current = payload_mybuf;
     while(current != nullptr){
         total_len += current->len;
-        current = current->next_my_buf;
+        current = current->next;
     }
 
     // IPヘッダ用のバッファを確保する

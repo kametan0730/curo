@@ -44,20 +44,20 @@ void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len)
 
             LOG_ICMP("Received icmp echo request id %04x seq %d\n", ntohs(icmp_msg->echo.identify), ntohs(icmp_msg->echo.sequence));
 
-            my_buf *reply_my_buf = my_buf::create(len);
+            my_buf *reply_mybuf = my_buf::create(len);
 
-            auto *reply_msg = reinterpret_cast<icmp_message *>(reply_my_buf->buffer);
+            auto *reply_msg = reinterpret_cast<icmp_message *>(reply_mybuf->buffer);
             reply_msg->header.type = ICMP_TYPE_ECHO_REPLY;
             reply_msg->header.code = 0;
             reply_msg->header.checksum = 0;
             reply_msg->echo.identify = icmp_msg->echo.identify; // 識別番号をコピー
             reply_msg->echo.sequence = icmp_msg->echo.sequence; // シーケンス番号をコピー
             memcpy(&reply_msg->echo.data, &icmp_msg->echo.data, len - (sizeof(icmp_header) + sizeof(icmp_echo))); // データをコピー
-            reply_msg->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(reply_my_buf->buffer), reply_my_buf->len); // checksumの計算
+            reply_msg->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(reply_mybuf->buffer), reply_mybuf->len); // checksumの計算
 
             ip_encapsulate_output(source,
                                   destination,
-                                  reply_my_buf,
+                                  reply_mybuf,
                                   IP_PROTOCOL_NUM_ICMP
                                   );
         }
@@ -83,8 +83,8 @@ void send_icmp_time_exceeded(uint32_t dest_addr, uint32_t src_addr, uint8_t code
     }
 
     // ICMPヘッダ+メッセージの領域+エラーパケット部(IPヘッダ+バイト)を確保
-    my_buf *time_exceeded_my_buf = my_buf::create(sizeof(icmp_header) + sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
-    auto *time_exceeded_msg = reinterpret_cast<icmp_message *>(time_exceeded_my_buf->buffer);
+    my_buf *time_exceeded_mybuf = my_buf::create(sizeof(icmp_header) + sizeof(icmp_time_exceeded) + sizeof(ip_header) + 8);
+    auto *time_exceeded_msg = reinterpret_cast<icmp_message *>(time_exceeded_mybuf->buffer);
 
     // 各フィールドをセット
     time_exceeded_msg->header.type = ICMP_TYPE_TIME_EXCEEDED;
@@ -92,10 +92,10 @@ void send_icmp_time_exceeded(uint32_t dest_addr, uint32_t src_addr, uint8_t code
     time_exceeded_msg->header.checksum = 0;
     time_exceeded_msg->time_exceeded.unused = 0;
     memcpy(time_exceeded_msg->time_exceeded.data, error_ip_buffer, sizeof(ip_header) + 8);
-    time_exceeded_msg->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(time_exceeded_my_buf->buffer),time_exceeded_my_buf->len);
+    time_exceeded_msg->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(time_exceeded_mybuf->buffer), time_exceeded_mybuf->len);
 
     // IPで送信
-    ip_encapsulate_output(dest_addr, src_addr, time_exceeded_my_buf, IP_PROTOCOL_NUM_ICMP);
+    ip_encapsulate_output(dest_addr, src_addr, time_exceeded_mybuf, IP_PROTOCOL_NUM_ICMP);
 }
 
 /**
@@ -112,8 +112,8 @@ void send_icmp_destination_unreachable(uint32_t dest_addr, uint32_t src_addr, ui
     }
 
     // ICMPヘッダ+メッセージの領域+エラーパケット部(IPヘッダ+バイト)を確保
-    my_buf *unreachable_my_buf = my_buf::create(sizeof(icmp_header) + sizeof(icmp_destination_unreachable) + sizeof(ip_header) + 8);
-    auto *unreachable_msg = reinterpret_cast<icmp_message *>(unreachable_my_buf->buffer);
+    my_buf *unreachable_mybuf = my_buf::create(sizeof(icmp_header) + sizeof(icmp_destination_unreachable) + sizeof(ip_header) + 8);
+    auto *unreachable_msg = reinterpret_cast<icmp_message *>(unreachable_mybuf->buffer);
 
     // 各フィールドをセット
     unreachable_msg->header.type = ICMP_TYPE_DESTINATION_UNREACHABLE;
@@ -121,8 +121,8 @@ void send_icmp_destination_unreachable(uint32_t dest_addr, uint32_t src_addr, ui
     unreachable_msg->header.checksum = 0;
     unreachable_msg->destination_unreachable.unused = 0;
     memcpy(unreachable_msg->destination_unreachable.data, error_ip_buffer, sizeof(ip_header) + 8);
-    unreachable_msg->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(unreachable_my_buf->buffer), unreachable_my_buf->len);
+    unreachable_msg->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(unreachable_mybuf->buffer), unreachable_mybuf->len);
 
     // IPで送信
-    ip_encapsulate_output(dest_addr, src_addr, unreachable_my_buf, IP_PROTOCOL_NUM_ICMP);
+    ip_encapsulate_output(dest_addr, src_addr, unreachable_mybuf, IP_PROTOCOL_NUM_ICMP);
 }

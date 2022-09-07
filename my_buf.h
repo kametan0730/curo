@@ -8,8 +8,8 @@
 #include "config.h"
 
 struct my_buf{
-    my_buf *prev_my_buf = nullptr; // 前の連結
-    my_buf *next_my_buf = nullptr; // 後ろの連結
+    my_buf *previous = nullptr; // 前のmy_buf
+    my_buf *next = nullptr; // 後ろのmy_buf
     uint32_t len = 0; // my_bufに含むバッファの長さ
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
     uint8_t *buf_ptr = nullptr;
@@ -38,10 +38,10 @@ struct my_buf{
             return;
         }
 
-        my_buf *tail = buf->get_tail_my_buf(), *tmp;
+        my_buf *tail = buf->get_tail(), *tmp;
         while(tail != nullptr){
             tmp = tail;
-            tail = tmp->prev_my_buf;
+            tail = tmp->previous;
             free(tmp);
         }
     }
@@ -49,17 +49,17 @@ struct my_buf{
     /**
      * 連結リストの最後の項目を返す
      */
-    my_buf *get_tail_my_buf(){
+    my_buf *get_tail(){
         my_buf *current = this;
-        while(current->next_my_buf != nullptr){
-            current = current->next_my_buf;
+        while(current->next != nullptr){
+            current = current->next;
         }
         return current;
     }
 
     void add_header(my_buf *buf){
-        this->prev_my_buf = buf;
-        buf->next_my_buf = this;
+        this->previous = buf;
+        buf->next = this;
     }
 };
 

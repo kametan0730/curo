@@ -104,7 +104,7 @@ void ethernet_encapsulate_output(
         }
 #endif
         total_len += current->len;
-        current = current->next_my_buf;
+        current = current->next;
     }
 
     // ネットワークデバイスに送信する

@@ -112,8 +112,8 @@ void dump_arp_table_entry(){
 void send_arp_request(net_device *dev, uint32_t ip_addr){
     LOG_ARP("Sending arp request via %s for %s\n", dev->name, ip_htoa(ip_addr));
 
-    auto *arp_my_buf = my_buf::create(ARP_ETHERNET_PACKET_LEN);
-    auto *arp_msg = reinterpret_cast<arp_ip_to_ethernet *>(arp_my_buf->buffer);
+    auto *arp_mybuf = my_buf::create(ARP_ETHERNET_PACKET_LEN);
+    auto *arp_msg = reinterpret_cast<arp_ip_to_ethernet *>(arp_mybuf->buffer);
     arp_msg->htype = htons(ARP_HTYPE_ETHERNET); // ハードウェアタイプの設定
     arp_msg->ptype = htons(ETHER_TYPE_IP); // プロトコルタイプの設定
     arp_msg->hlen = ETHERNET_ADDRESS_LEN; // ハードウェアアドレス帳の設定
@@ -124,7 +124,7 @@ void send_arp_request(net_device *dev, uint32_t ip_addr){
     arp_msg->tpa = htonl(ip_addr); // ターゲットプロトコルアドレスに、探すホストのIPアドレスを設定
 
     // イーサネットで送信する
-    ethernet_encapsulate_output(dev, ETHERNET_ADDRESS_BROADCAST, arp_my_buf, ETHER_TYPE_ARP);
+    ethernet_encapsulate_output(dev, ETHERNET_ADDRESS_BROADCAST, arp_mybuf, ETHER_TYPE_ARP);
 }
 
 // 宣言のみ
@@ -184,9 +184,9 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *request){
         if(dev->ip_dev->address == ntohl(request->tpa)){ // 要求されているアドレスが自分の物だったら
             LOG_ARP("Sending arp reply via %s\n", ip_ntoa(request->tpa));
 
-            auto *reply_my_buf = my_buf::create(ARP_ETHERNET_PACKET_LEN);
+            auto *reply_mybuf = my_buf::create(ARP_ETHERNET_PACKET_LEN);
 
-            auto reply_msg = reinterpret_cast<arp_ip_to_ethernet *>(reply_my_buf->buffer);
+            auto reply_msg = reinterpret_cast<arp_ip_to_ethernet *>(reply_mybuf->buffer);
             reply_msg->htype = htons(ARP_HTYPE_ETHERNET);
             reply_msg->ptype = htons(ETHER_TYPE_IP);
             reply_msg->hlen = ETHERNET_ADDRESS_LEN; // IPアドレスの長さ
@@ -199,7 +199,7 @@ void arp_request_arrives(net_device *dev, arp_ip_to_ethernet *request){
             memcpy(reply_msg->tha, request->sha, ETHERNET_ADDRESS_LEN);
             reply_msg->tpa = request->spa;
 
-            ethernet_encapsulate_output(dev, request->sha, reply_my_buf, ETHER_TYPE_ARP); // イーサネットで送信
+            ethernet_encapsulate_output(dev, request->sha, reply_mybuf, ETHER_TYPE_ARP); // イーサネットで送信
             add_arp_table_entry(dev, request->sha, ntohl(request->spa)); // ARPリクエストからもエントリを生成
             return;
         }
