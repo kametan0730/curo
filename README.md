@@ -18,8 +18,8 @@ curo is a software router
 - [x] ICMP Echo Reply
 - [x] ICMP Time Exceeded
 - [x] ICMP Destination Unreachable
-- [x] NAPT (UDP,TCP,ICMP(Query))
-- [ ] NAPT (ICMP(Error))
+- [x] NAT (UDP,TCP,ICMP(Query))
+- [ ] NAT (ICMP(Error))
 
 ## Build
 ```shell

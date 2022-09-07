@@ -40,8 +40,8 @@ struct ip_device{
     uint32_t address = 0; // デバイスのIPアドレス
     uint32_t netmask = 0; // サブネットマスク
     uint32_t broadcast = 0; // ブロードキャストアドレス
-#ifdef ENABLE_NAPT
-    nat_inside_device *napt_inside_dev = nullptr;
+#ifdef ENABLE_NAT
+    nat_inside_device *nat_inside_dev = nullptr;
 #endif
 };
 

@@ -61,7 +61,7 @@ struct nat_entry{
     uint16_t local_port;
 };
 
-// ICMP, UDP, TCPのNAPTテーブルのセット
+// ICMP, UDP, TCPのNATテーブルのセット
 struct nat_entries{
     nat_entry icmp[NAT_ICMP_ID_SIZE];
     nat_entry udp[NAT_GLOBAL_PORT_SIZE];
@@ -70,12 +70,12 @@ struct nat_entries{
 
 struct nat_inside_device{
     uint32_t outside_address; // 変換先のIPアドレス
-    nat_entries *entries; // NAPTテーブル
+    nat_entries *entries; // NATテーブル
 };
 
 void dump_nat_tables();
 
-bool nat_exec(ip_header *ip_packet, size_t len, nat_inside_device *napt_dev, nat_protocol proto, nat_direction direction);
+bool nat_exec(ip_header *ip_packet, size_t len, nat_inside_device *nat_dev, nat_protocol proto, nat_direction direction);
 
 nat_entry *get_nat_entry_by_global(nat_entries *entries, nat_protocol proto, uint32_t address, uint16_t id);
 nat_entry *get_nat_entry_by_local(nat_entries *entries, nat_protocol proto, uint32_t address, uint16_t port);

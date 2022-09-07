@@ -91,7 +91,7 @@ void configure(){
     configure_ip_address(get_net_device_by_name("router1-br0"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip_address(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip_net_route(IP_ADDRESS(192, 168, 2, 0), 24, IP_ADDRESS(192, 168, 0, 2));
-    configure_ip_napt(get_net_device_by_name("router1-br0"), get_net_device_by_name("router1-router2"));
+    configure_ip_nat(get_net_device_by_name("router1-br0"), get_net_device_by_name("router1-router2"));
     */
 }
 
@@ -217,7 +217,7 @@ int main(){
         if(input != -1){ // なにも入力がなかったら
             if(input == 'a') dump_arp_table_entry();
             else if(input == 'r') dump_ip_fib();
-#ifdef ENABLE_NAPT
+#ifdef ENABLE_NAT
             else if(input == 'n') dump_nat_tables();
 #endif
         }

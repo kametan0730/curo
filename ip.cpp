@@ -75,39 +75,39 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
         return;
     }
 
-#ifdef ENABLE_NAPT
-    // NAPTの外側から内側への通信か判断
+#ifdef ENABLE_NAT
+    // NATの外側から内側への通信か判断
     for(net_device *dev = net_dev_list; dev; dev = dev->next){
-        if(dev->ip_dev != nullptr and dev->ip_dev->napt_inside_dev != nullptr and
-           dev->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->dest_addr)){
-            bool napt_executed = false;
+        if(dev->ip_dev != nullptr and dev->ip_dev->nat_inside_dev != nullptr and
+           dev->ip_dev->nat_inside_dev->outside_address == ntohl(ip_packet->dest_addr)){
+            bool nat_executed = false;
             switch(ip_packet->protocol){
                 case IP_PROTOCOL_NUM_UDP:
                     if(nat_exec(ip_packet, len,
-                                dev->ip_dev->napt_inside_dev,
+                                dev->ip_dev->nat_inside_dev,
                                 nat_protocol::udp,
                                 nat_direction::incoming)){
-                        napt_executed = true;
+                        nat_executed = true;
                     }
                     break;
                 case IP_PROTOCOL_NUM_TCP:
                     if(nat_exec(ip_packet, len,
-                                dev->ip_dev->napt_inside_dev,
+                                dev->ip_dev->nat_inside_dev,
                                 nat_protocol::tcp,
                                 nat_direction::incoming)){
-                        napt_executed = true;
+                        nat_executed = true;
                     }
                     break;
                 case IP_PROTOCOL_NUM_ICMP:
                     if(nat_exec(ip_packet, len,
-                                dev->ip_dev->napt_inside_dev,
+                                dev->ip_dev->nat_inside_dev,
                                 nat_protocol::icmp,
                                 nat_direction::incoming)){
-                        napt_executed = true;
+                        nat_executed = true;
                     }
                     break;
             }
-            if(napt_executed){
+            if(nat_executed){
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
                 my_buf *nat_fwd_buf = my_buf::create(0);
                 nat_fwd_buf->buf_ptr = (uint8_t *) ip_packet;
@@ -211,33 +211,33 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
         }
     }
 
-#ifdef ENABLE_NAPT
-    // NAPTの内側から外側への通信
-    if(input_dev->ip_dev->napt_inside_dev != nullptr){ // TODO これNATしないLAN内通信できない?
-        if(ip_packet->protocol == IP_PROTOCOL_NUM_UDP){ // NAPTの対象
+#ifdef ENABLE_NAT
+    // NATの内側から外側への通信
+    if(input_dev->ip_dev->nat_inside_dev != nullptr){ // TODO これNATしないLAN内通信できない?
+        if(ip_packet->protocol == IP_PROTOCOL_NUM_UDP){ // NATの対象
             if(!nat_exec(ip_packet, len,
-                         input_dev->ip_dev->napt_inside_dev,
+                         input_dev->ip_dev->nat_inside_dev,
                          nat_protocol::udp,
                          nat_direction::outgoing)){
-                return; // NAPTできないパケットはドロップ
+                return; // NATできないパケットはドロップ
             }
         }else if(ip_packet->protocol == IP_PROTOCOL_NUM_TCP){
             if(!nat_exec(ip_packet, len,
-                         input_dev->ip_dev->napt_inside_dev,
+                         input_dev->ip_dev->nat_inside_dev,
                          nat_protocol::tcp,
                          nat_direction::outgoing)){
-                return; // NAPTできないパケットはドロップ
+                return; // NATできないパケットはドロップ
             }
         }else if(ip_packet->protocol == IP_PROTOCOL_NUM_ICMP){
             if(!nat_exec(ip_packet, len,
-                         input_dev->ip_dev->napt_inside_dev,
+                         input_dev->ip_dev->nat_inside_dev,
                          nat_protocol::icmp,
                          nat_direction::outgoing)){
-                return; // NAPTできないパケットはドロップ
+                return; // NATできないパケットはドロップ
             }
         }else{
-            LOG_IP("NAPT unimplemented packet dropped type=%d\n", ip_packet->protocol);
-            return; // NAPTできないパケットはドロップ
+            LOG_IP("NAT unimplemented packet dropped type=%d\n", ip_packet->protocol);
+            return; // NATできないパケットはドロップ
 
         }
     }

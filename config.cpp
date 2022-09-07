@@ -73,23 +73,23 @@ void configure_ip_address(net_device *dev, uint32_t address, uint32_t netmask){
  * @param inside NATの内側のデバイス
  * @param outside NATの外側のデバイス
  */
-void configure_ip_napt(net_device *inside, net_device *outside){
-#ifdef ENABLE_NAPT
+void configure_ip_nat(net_device *inside, net_device *outside){
+#ifdef ENABLE_NAT
     if(inside == nullptr or outside == nullptr){
-        LOG_ERROR("Failed to configure NAPT %s => %s\n", inside->ifname, outside->ifname);
+        LOG_ERROR("Failed to configure NAT %s => %s\n", inside->ifname, outside->ifname);
         exit(1); // プログラムを終了
     }
 
     if(inside->ip_dev == nullptr or outside->ip_dev == nullptr){
-        LOG_ERROR("Failed to configure NAPT %s => %s\n", inside->ifname, outside->ifname);
+        LOG_ERROR("Failed to configure NAT %s => %s\n", inside->ifname, outside->ifname);
         exit(1); // プログラムを終了
     }
 
-    inside->ip_dev->napt_inside_dev = (nat_inside_device *) calloc(1, sizeof(nat_inside_device));
-    inside->ip_dev->napt_inside_dev->entries = (nat_entries *) calloc(1, sizeof(nat_entries));
-    inside->ip_dev->napt_inside_dev->outside_address = outside->ip_dev->address;
+    inside->ip_dev->nat_inside_dev = (nat_inside_device *) calloc(1, sizeof(nat_inside_device));
+    inside->ip_dev->nat_inside_dev->entries = (nat_entries *) calloc(1, sizeof(nat_entries));
+    inside->ip_dev->nat_inside_dev->outside_address = outside->ip_dev->address;
 #else
-    LOG_ERROR("NAPT has not been enabled for this build\n");
+    LOG_ERROR("NAT has not been enabled for this build\n");
     exit(1);
 #endif
 
