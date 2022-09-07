@@ -81,21 +81,22 @@ void ethernet_encapsulate_output(net_device *dev, const uint8_t *dest_addr, my_b
 #endif
 #endif
 
+    uint8_t send_buffer[1550];
     // 全長を計算しながらメモリにバッファを展開する
     size_t total_len = 0;
     my_buf *current = ethernet_header_my_buf;
     while(current != nullptr){
-        if(total_len + current->len > sizeof(dev->send_buffer)){ // Overflowする場合
+        if(total_len + current->len > sizeof(send_buffer)){ // Overflowする場合
             LOG_ETHERNET("Frame is too long!\n");
             return;
         }
 
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
         if(current->buf_ptr != nullptr){
-            memcpy(&dev->send_buffer[total_len], current->buf_ptr, current->len);
+            memcpy(&send_buffer[total_len], current->buf_ptr, current->len);
         }else{
 #endif
-            memcpy(&dev->send_buffer[total_len], current->buffer, current->len);
+            memcpy(&send_buffer[total_len], current->buffer, current->len);
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
         }
 #endif
@@ -104,7 +105,7 @@ void ethernet_encapsulate_output(net_device *dev, const uint8_t *dest_addr, my_b
     }
 
     // ネットワークデバイスに送信する
-    dev->ops.transmit(dev, dev->send_buffer, total_len);
+    dev->ops.transmit(dev, send_buffer, total_len);
 
     my_buf::my_buf_free(ethernet_header_my_buf, true); // メモリ開放
 }

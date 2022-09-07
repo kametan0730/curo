@@ -23,14 +23,16 @@
 
 /**
  * 無視するインターフェースたち
- * 中にはMACアドレスを持たないものなど、このプログラムで使うとエラーを引き起こすものもある
+ * 中にはMACアドレスを持たないものなど、
+ * このプログラムで使うとエラーを引き起こすものもある
  */
-#define IGNORE_INTERFACES {"lo", "bond0", "dummy0", "tunl0", "sit0"}
+#define IGNORE_INTERFACES {"lo", "bond0", \
+"dummy0", "tunl0", "sit0"}
 
 /**
  * 無視するデバイスかどうかを返す
  * @param ifname
- * @return 無視するデバイスかどうか
+ * @return IGNORE_INTERFACESに含まれているかどうか
  */
 bool is_ignore_interface(const char *ifname){
     char ignore_interfaces[][IF_NAMESIZE] = IGNORE_INTERFACES;
@@ -93,8 +95,10 @@ void configure(){
     */
 }
 
-int net_device_transmit(struct net_device *dev, uint8_t *buffer, size_t len); // 宣言のみ
-int net_device_poll(net_device *dev); // 宣言のみ
+// 宣言のみ
+int net_device_transmit(struct net_device *dev,
+        uint8_t *buffer, size_t len);
+int net_device_poll(net_device *dev);
 
 /**
  * デバイスのプラットフォーム依存のデータ
@@ -235,8 +239,9 @@ int main(){
  */
 int net_device_transmit(struct net_device *dev,
         uint8_t *buffer, size_t len){
+    // socketを通して送信
     send(((net_device_data *) dev->data)->fd,
-         buffer, len, 0); // socketを通して送信
+         buffer, len, 0);
     return 0;
 }
 
@@ -246,11 +251,12 @@ int net_device_transmit(struct net_device *dev,
  * @return
  */
 int net_device_poll(net_device *dev){
+    uint8_t recv_buffer[1550];
     // socketから受信
     ssize_t n = recv(
             ((net_device_data *) dev->data)->fd,
-            dev->recv_buffer,
-            sizeof(dev->recv_buffer), 0);
+            recv_buffer,
+            sizeof(recv_buffer), 0);
     if(n == -1){
         if(errno == EAGAIN){ // 受け取るデータが無かったら
             return 0;
@@ -259,11 +265,12 @@ int net_device_poll(net_device *dev){
         }
     }
     // 受信したデータをイーサネットに送る
-    ethernet_input(dev, dev->recv_buffer, n);
+    ethernet_input(dev, recv_buffer, n);
 
     /*
     // for book chapter 2
-    printf("Received %lu bytes from %s: ", n, dev->ifname);
+    printf("Received %lu bytes from %s: ",
+           n, dev->ifname);
     for(int i = 0; i < n; ++i){
         printf("%02x", dev->recv_buffer[i]);
     }
