@@ -10,6 +10,9 @@
 #include "nat.h"
 #include "utils.h"
 
+/**
+ * IPルーティングテーブルのルートノード
+ */
 binary_trie_node<ip_route_entry> *ip_fib;
 
 /**
@@ -29,7 +32,7 @@ void dump_ip_fib(){
                 printf("%s/%d connected %s\n",
                        ip_htoa(locate_prefix(
                                current_node,
-                               ip_fib)), current_node->depth, current_node->data->dev->ifname);
+                               ip_fib)), current_node->depth, current_node->data->dev->name);
             }else{
                 printf("%s/%d nexthop %s\n",
                        ip_htoa(locate_prefix(
@@ -59,7 +62,6 @@ bool in_subnet(uint32_t subnet_prefix, uint32_t subnet_mask, uint32_t target_add
     return ((target_address & subnet_mask) == (subnet_prefix & subnet_mask));
 }
 
-
 /**
  * 自分宛のIPパケットの処理
  * @param input_dev
@@ -78,13 +80,13 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
 #ifdef ENABLE_NAT
     // NATの外側から内側への通信か判断
     for(net_device *dev = net_dev_list; dev; dev = dev->next){
-        if(dev->ip_dev != nullptr and dev->ip_dev->nat_inside_dev != nullptr and
-           dev->ip_dev->nat_inside_dev->outside_address == ntohl(ip_packet->dest_addr)){
+        if(dev->ip_dev != nullptr and dev->ip_dev->nat_dev != nullptr and
+           dev->ip_dev->nat_dev->outside_addr == ntohl(ip_packet->dest_addr)){
             bool nat_executed = false;
             switch(ip_packet->protocol){
                 case IP_PROTOCOL_NUM_UDP:
                     if(nat_exec(ip_packet, len,
-                                dev->ip_dev->nat_inside_dev,
+                                dev->ip_dev->nat_dev,
                                 nat_protocol::udp,
                                 nat_direction::incoming)){
                         nat_executed = true;
@@ -92,7 +94,7 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
                     break;
                 case IP_PROTOCOL_NUM_TCP:
                     if(nat_exec(ip_packet, len,
-                                dev->ip_dev->nat_inside_dev,
+                                dev->ip_dev->nat_dev,
                                 nat_protocol::tcp,
                                 nat_direction::incoming)){
                         nat_executed = true;
@@ -100,7 +102,7 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
                     break;
                 case IP_PROTOCOL_NUM_ICMP:
                     if(nat_exec(ip_packet, len,
-                                dev->ip_dev->nat_inside_dev,
+                                dev->ip_dev->nat_dev,
                                 nat_protocol::icmp,
                                 nat_direction::incoming)){
                         nat_executed = true;
@@ -142,8 +144,8 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
         case IP_PROTOCOL_NUM_UDP:
 #ifdef ENABLE_ICMP_ERROR
             send_icmp_destination_unreachable(
-                    input_dev->ip_dev->address,
                     ntohl(ip_packet->src_addr),
+                    input_dev->ip_dev->address,
                     ICMP_DESTINATION_UNREACHABLE_CODE_PORT_UNREACHABLE,
                     ip_packet, len);
 #endif
@@ -158,7 +160,6 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
             return;
     }
 }
-
 
 /**
  * IPパケットの受信処理
@@ -175,7 +176,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
     // IPヘッダ長より短かったらドロップ
     if(len < sizeof(ip_header)){
-        LOG_IP("Received IP packet too short from %s\n", input_dev->ifname);
+        LOG_IP("Received IP packet too short from %s\n", input_dev->name);
         return;
     }
 
@@ -213,24 +214,24 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
 #ifdef ENABLE_NAT
     // NATの内側から外側への通信
-    if(input_dev->ip_dev->nat_inside_dev != nullptr){ // TODO これNATしないLAN内通信できない?
+    if(input_dev->ip_dev->nat_dev != nullptr){
         if(ip_packet->protocol == IP_PROTOCOL_NUM_UDP){ // NATの対象
             if(!nat_exec(ip_packet, len,
-                         input_dev->ip_dev->nat_inside_dev,
+                         input_dev->ip_dev->nat_dev,
                          nat_protocol::udp,
                          nat_direction::outgoing)){
                 return; // NATできないパケットはドロップ
             }
         }else if(ip_packet->protocol == IP_PROTOCOL_NUM_TCP){
             if(!nat_exec(ip_packet, len,
-                         input_dev->ip_dev->nat_inside_dev,
+                         input_dev->ip_dev->nat_dev,
                          nat_protocol::tcp,
                          nat_direction::outgoing)){
                 return; // NATできないパケットはドロップ
             }
         }else if(ip_packet->protocol == IP_PROTOCOL_NUM_ICMP){
             if(!nat_exec(ip_packet, len,
-                         input_dev->ip_dev->nat_inside_dev,
+                         input_dev->ip_dev->nat_dev,
                          nat_protocol::icmp,
                          nat_direction::outgoing)){
                 return; // NATできないパケットはドロップ
@@ -253,7 +254,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 
     if(ip_packet->ttl <= 1){ // TTLが1以下ならドロップ
 #ifdef ENABLE_ICMP_ERROR
-        send_icmp_time_exceeded(input_dev->ip_dev->address, ntohl(ip_packet->src_addr), ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED, buffer, len);
+        send_icmp_time_exceeded(ntohl(ip_packet->src_addr), input_dev->ip_dev->address,  ICMP_TIME_EXCEEDED_CODE_TIME_TO_LIVE_EXCEEDED, buffer, len);
 #endif
         return;
     }
@@ -277,7 +278,7 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 #endif
 
     if(route->type == connected){ // 直接接続ネットワークの経路なら
-        ip_output_to_host(route->dev, ntohl(ip_packet->src_addr), ntohl(ip_packet->dest_addr), ip_forward_buf); // hostに直接送信
+        ip_output_to_host(route->dev, ntohl(ip_packet->dest_addr), ntohl(ip_packet->src_addr), ip_forward_buf); // hostに直接送信
         return;
     }else if(route->type == network){ // 直接接続ネットワークの経路ではなかったら
         ip_output_to_next_hop(route->next_hop, ip_forward_buf); // next hopに送信
@@ -288,16 +289,15 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 /**
  * IPパケットを直接イーサネットでホストに送信
  * @param dev
- * @param src_addr
  * @param dest_addr
+ * @param src_addr
  * @param buffer
  */
-void ip_output_to_host(net_device *dev, uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
+void ip_output_to_host(net_device *dev, uint32_t dest_addr, uint32_t src_addr, my_buf *buffer){
     arp_table_entry *entry = search_arp_table_entry(dest_addr); // ARPテーブルの検索
 
     if(!entry){ // ARPエントリが無かったら
         LOG_IP("Trying ip output to host, but no arp record to %s\n", ip_htoa(dest_addr));
-        //send_icmp_destination_unreachable(dev->ip_dev->address, src_addr, ICMP_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE, buffer->buf_ptr, 100);
         send_arp_request(dev, dest_addr); // ARPリクエストの送信
         my_buf::my_buf_free(buffer, true); // Drop packet
         return;
@@ -307,7 +307,7 @@ void ip_output_to_host(net_device *dev, uint32_t src_addr, uint32_t dest_addr, m
 }
 
 /**
- * IPパケットをnext hopに送信
+ * IPパケットをNextHopに送信
  * @param next_hop
  * @param buffer
  */
@@ -334,12 +334,13 @@ void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer){
 
 /**
  * IPパケットを送信
- * @param src_addr
  * @param dest_addr
+ * @param src_addr
  * @param buffer
  */
-void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
-    ip_route_entry *route = binary_trie_search(ip_fib, dest_addr); // 経路を検索
+void ip_output(uint32_t dest_addr, uint32_t src_addr, my_buf *buffer){
+    // 宛先IPアドレスへの経路を検索
+    ip_route_entry *route = binary_trie_search(ip_fib, dest_addr);
     if(route == nullptr){ // 経路が見つからなかったら
         LOG_IP("No route to %s\n", ip_htoa(dest_addr));
         my_buf::my_buf_free(buffer, true); // Drop packet
@@ -347,7 +348,7 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
     }
 
     if(route->type == connected){ // 直接接続ネットワークだったら
-        ip_output_to_host(route->dev, src_addr, dest_addr, buffer);
+        ip_output_to_host(route->dev, dest_addr, src_addr, buffer);
         return;
     }else if(route->type == network){ // 直接つながっていないネットワークだったら
         ip_output_to_next_hop(route->next_hop, buffer);
@@ -355,30 +356,29 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
     }
 }
 
-
 /**
  * IPパケットにカプセル化して送信
  * @param dest_addr 送信先のIPアドレス
  * @param src_addr 送信元のIPアドレス
- * @param upper_layer_buffer 包んで送信するmy_buf構造体の先頭
+ * @param payload_mybuf 包んで送信するmy_buf構造体の先頭
  * @param protocol_num IPプロトコル番号
  */
-void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_layer_buffer, uint8_t protocol_num){
+void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *payload_mybuf, uint8_t protocol_num){
 
     // 連結リストをたどってIPヘッダで必要なIPパケットの全長を算出する
     uint16_t total_len = 0;
-    my_buf *current = upper_layer_buffer;
+    my_buf *current = payload_mybuf;
     while(current != nullptr){
         total_len += current->len;
         current = current->next_my_buf;
     }
 
     // IPヘッダ用のバッファを確保する
-    my_buf *ip_my_buf = my_buf::create(IP_HEADER_SIZE);
-    upper_layer_buffer->add_header(ip_my_buf); // 上位プロトコルのデータにヘッダとして連結する
+    my_buf *ip_mybuf = my_buf::create(IP_HEADER_SIZE);
+    payload_mybuf->add_header(ip_mybuf); // 包んで送るデータにヘッダとして連結する
 
     // IPヘッダの各項目を設定
-    auto *ip_buf = reinterpret_cast<ip_header *>(ip_my_buf->buffer);
+    auto *ip_buf = reinterpret_cast<ip_header *>(ip_mybuf->buffer);
     ip_buf->version = 4;
     ip_buf->header_len = sizeof(ip_header) >> 2;
     ip_buf->tos = 0;
@@ -392,9 +392,9 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
     ip_buf->header_checksum = 0;
     ip_buf->dest_addr = htonl(dest_addr);
     ip_buf->src_addr = htonl(src_addr);
-    ip_buf->header_checksum = checksum_16(reinterpret_cast<uint16_t *>(ip_my_buf->buffer), ip_my_buf->len);
+    ip_buf->header_checksum = checksum_16(reinterpret_cast<uint16_t *>(ip_mybuf->buffer), ip_mybuf->len);
 
-    ip_output(src_addr, dest_addr, ip_my_buf);
+    ip_output(dest_addr, src_addr, ip_mybuf);
 
     /*
     // for book chapter3 (IP ルーティング/フォワーディングが実装されてないとき用)
@@ -407,10 +407,10 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
             if(entry == nullptr){
                 LOG_IP("Trying ip output, but no arp record to %s\n", ip_htoa(dest_addr));
                 send_arp_request(dev, dest_addr);
-                my_buf::my_buf_free(upper_layer_buffer, true);
+                my_buf::my_buf_free(payload_mybuf, true);
                 return;
             }
-            ethernet_encapsulate_output(dev, entry->mac_addr, ip_my_buf, ETHER_TYPE_IP);
+            ethernet_encapsulate_output(dev, entry->mac_addr, ip_mybuf, ETHER_TYPE_IP);
         }
     }
     */

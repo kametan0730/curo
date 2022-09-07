@@ -14,7 +14,8 @@
  * @param buffer 受信したデータのバイト列
  * @param len 受信したデータの長さ
  */
-void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
+void ethernet_input(net_device *dev,
+                    uint8_t *buffer, ssize_t len){
     // 送られてきた通信をイーサネットのフレームとして解釈する
     auto *header = reinterpret_cast<ethernet_header *>(buffer);
     uint16_t ether_type = ntohs(header->type); // イーサタイプを抜き出すし、ホストバイトオーダーに変換
@@ -53,29 +54,31 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len){
  * イーサネットにカプセル化して送信
  * @param dev 送信するデバイス
  * @param dest_addr 宛先アドレス
- * @param upper_layer_buffer 包んで送信するmy_buf構造体の先頭
+ * @param payload_mybuf 包んで送信するmy_buf構造体の先頭
  * @param ether_type イーサタイプ
  */
-void ethernet_encapsulate_output(net_device *dev, const uint8_t *dest_addr, my_buf *upper_layer_buffer, uint16_t ether_type){
+void ethernet_encapsulate_output(
+        net_device *dev, const uint8_t *dest_addr,
+        my_buf *payload_mybuf, uint16_t ether_type){
     LOG_ETHERNET("Sending ethernet frame type %04x from %s to %s\n",
                  ether_type, mac_addr_toa(dev->mac_addr),
                  mac_addr_toa(dest_addr));
 
-    my_buf *ethernet_header_my_buf = my_buf::create(ETHERNET_HEADER_SIZE); // イーサネットヘッダ長分のバッファを確保
-    auto *ether_header = reinterpret_cast<ethernet_header *>(ethernet_header_my_buf->buffer);
+    my_buf *header_mybuf = my_buf::create(ETHERNET_HEADER_SIZE); // イーサネットヘッダ長分のバッファを確保
+    auto *header = reinterpret_cast<ethernet_header *>(header_mybuf->buffer);
 
     // イーサネットヘッダの設定
-    memcpy(ether_header->src_addr, dev->mac_addr, 6); // 送信元アドレスにはデバイスのアドレスを設定
-    memcpy(ether_header->dest_addr, dest_addr, 6); // `宛先アドレスの設定
-    ether_header->type = htons(ether_type); // イーサタイプの設定
+    memcpy(header->src_addr, dev->mac_addr, 6); // 送信元アドレスにはデバイスのアドレスを設定
+    memcpy(header->dest_addr, dest_addr, 6); // `宛先アドレスの設定
+    header->type = htons(ether_type); // イーサタイプの設定
 
-    upper_layer_buffer->add_header(ethernet_header_my_buf); // 上位プロトコルから受け取ったバッファにヘッダをつける
+    payload_mybuf->add_header(header_mybuf); // 上位プロトコルから受け取ったバッファにヘッダをつける
 
 #ifdef DEBUG_ETHERNET
 #if DEBUG_ETHERNET > 1
     printf("[ETHER] Sending buffer: ");
-    for (int i = 0; i < ethernet_header_my_buf->len; ++i) {
-        printf("%02x", ethernet_header_my_buf->buffer[i]);
+    for (int i = 0; i < header_mybuf->len; ++i) {
+        printf("%02x", header_mybuf->buffer[i]);
     }
     printf("\n");
 #endif
@@ -84,7 +87,7 @@ void ethernet_encapsulate_output(net_device *dev, const uint8_t *dest_addr, my_b
     uint8_t send_buffer[1550];
     // 全長を計算しながらメモリにバッファを展開する
     size_t total_len = 0;
-    my_buf *current = ethernet_header_my_buf;
+    my_buf *current = header_mybuf;
     while(current != nullptr){
         if(total_len + current->len > sizeof(send_buffer)){ // Overflowする場合
             LOG_ETHERNET("Frame is too long!\n");
@@ -107,5 +110,5 @@ void ethernet_encapsulate_output(net_device *dev, const uint8_t *dest_addr, my_b
     // ネットワークデバイスに送信する
     dev->ops.transmit(dev, send_buffer, total_len);
 
-    my_buf::my_buf_free(ethernet_header_my_buf, true); // メモリ開放
+    my_buf::my_buf_free(header_mybuf, true); // メモリ開放
 }

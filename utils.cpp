@@ -4,8 +4,6 @@
 
 /**
  * 16ビットでバイトオーダーを入れ替える
- * @param v
- * @return
  */
 uint16_t swap_byte_order_16(uint16_t v){
     return (v & 0x00ff) << 8 |
@@ -14,8 +12,6 @@ uint16_t swap_byte_order_16(uint16_t v){
 
 /**
  * 32ビットでバイトオーダーを入れ替える
- * @param v
- * @return
  */
 uint32_t swap_byte_order_32(uint32_t v){
     return (v & 0x000000ff) << 24 |
@@ -48,18 +44,20 @@ char ip_string_pool[4][16]; // 16バイト(xxx.xxx.xxx.xxxの文字数+1)の領�
  * @param in
  * @return
  */
-const char *ip_ntoa(uint32_t in){ // ネットワークバイトオーダーのIPアドレスから文字列に変換
+const char *ip_ntoa(uint32_t in){
     uint8_t a = in & 0x000000ff;
     uint8_t b = in >> 8 & 0x000000ff;
     uint8_t c = in >> 16 & 0x000000ff;
     uint8_t d = in >> 24 & 0x000000ff;
     ip_string_pool_index++;
     ip_string_pool_index %= 4;
-    sprintf(ip_string_pool[ip_string_pool_index], "%d.%d.%d.%d", a, b, c, d);
+    sprintf(ip_string_pool[ip_string_pool_index],
+            "%d.%d.%d.%d", a, b, c, d);
     return ip_string_pool[ip_string_pool_index];
 }
 
-const char *ip_htoa(uint32_t in){ // ホストバイトオーダーのIPアドレスから文字列に変換
+// ホストバイトオーダーのIPアドレスから文字列に変換
+const char *ip_htoa(uint32_t in){
     return ip_ntoa(htonl(in));
 }
 
@@ -69,7 +67,6 @@ char mac_addr_string_pool[4][18]; // 18バイト(xxx.xxx.xxx.xxxの文字数+1)�
 /**
  * MACアドレスから文字列に変換
  * @param addr
- * @return
  */
 const char *mac_addr_toa(const uint8_t *addr){
     mac_addr_string_pool_index++;

@@ -34,14 +34,14 @@ struct ip_header{
     uint32_t dest_addr;
 } __attribute__((packed));
 
-struct nat_inside_device;
+struct nat_device;
 
 struct ip_device{
     uint32_t address = 0; // デバイスのIPアドレス
     uint32_t netmask = 0; // サブネットマスク
     uint32_t broadcast = 0; // ブロードキャストアドレス
 #ifdef ENABLE_NAT
-    nat_inside_device *nat_inside_dev = nullptr;
+    nat_device *nat_dev = nullptr;
 #endif
 };
 
@@ -75,9 +75,9 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len);
 
 struct my_buf;
 
-void ip_output_to_host(net_device *dev, uint32_t src_address, uint32_t dest_address, my_buf *buffer);
+void ip_output_to_host(net_device *dev, uint32_t dest_address, uint32_t src_address, my_buf *buffer);
 void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer);
-void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer);
-void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *buffer, uint8_t protocol_num);
+void ip_output(uint32_t dest_addr, uint32_t src_addr, my_buf *buffer);
+void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *payload_mybuf, uint8_t protocol_num);
 
 #endif //CURO_IP_H

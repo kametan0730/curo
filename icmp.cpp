@@ -2,7 +2,6 @@
 
 #include <cstring>
 #include "config.h"
-#include "ethernet.h"
 #include "ip.h"
 #include "log.h"
 #include "my_buf.h"
@@ -72,13 +71,13 @@ void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len)
 
 /**
  * ICMP Time exceededメッセージを送信する
- * @param src_addr
  * @param dest_addr
+ * @param src_addr
  * @param code
  * @param error_ip_buffer エラーになったパケット
  * @param len エラーになったパケットの長さ
  */
-void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void *error_ip_buffer, size_t len){
+void send_icmp_time_exceeded(uint32_t dest_addr, uint32_t src_addr, uint8_t code, void *error_ip_buffer, size_t len){
     if(len < sizeof(ip_header) + 8){ // エラーパケットが小さすぎる場合
         return;
     }
@@ -101,13 +100,13 @@ void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code
 
 /**
  * ICMP Destination unreachableメッセージを送信する
- * @param src_addr
  * @param dest_addr
+ * @param src_addr
  * @param code Destination unreachableのコード
  * @param error_ip_buffer エラーになったパケット
  * @param len エラーになったパケットの長さ
  */
-void send_icmp_destination_unreachable(uint32_t src_addr, uint32_t dest_addr, uint8_t code, void *error_ip_buffer, size_t len){
+void send_icmp_destination_unreachable(uint32_t dest_addr, uint32_t src_addr, uint8_t code, void *error_ip_buffer, size_t len){
     if(len < sizeof(ip_header) + 8){ // エラーパケットが小さすぎる場合
         return;
     }

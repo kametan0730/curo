@@ -55,8 +55,8 @@ struct nat_packet_head{
 };
 
 struct nat_entry{
-    uint32_t global_address;
-    uint32_t local_address;
+    uint32_t global_addr;
+    uint32_t local_addr;
     uint16_t global_port;
     uint16_t local_port;
 };
@@ -68,17 +68,18 @@ struct nat_entries{
     nat_entry tcp[NAT_GLOBAL_PORT_SIZE];
 };
 
-struct nat_inside_device{
-    uint32_t outside_address; // 変換先のIPアドレス
+// NATの内側のip_deviceが持つNATデバイス
+struct nat_device{
+    uint32_t outside_addr; // 変換先のIPアドレス
     nat_entries *entries; // NATテーブル
 };
 
 void dump_nat_tables();
 
-bool nat_exec(ip_header *ip_packet, size_t len, nat_inside_device *nat_dev, nat_protocol proto, nat_direction direction);
+bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev, nat_protocol proto, nat_direction direction);
 
-nat_entry *get_nat_entry_by_global(nat_entries *entries, nat_protocol proto, uint32_t address, uint16_t id);
-nat_entry *get_nat_entry_by_local(nat_entries *entries, nat_protocol proto, uint32_t address, uint16_t port);
+nat_entry *get_nat_entry_by_global(nat_entries *entries, nat_protocol proto, uint32_t addr, uint16_t port);
+nat_entry *get_nat_entry_by_local(nat_entries *entries, nat_protocol proto, uint32_t addr, uint16_t port);
 nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto);
 
 

@@ -16,6 +16,10 @@ struct my_buf{
 #endif
     uint8_t buffer[]; // バッファ
 
+    /**
+     * my_bufのメモリ確保
+     * @param len 確保するバッファ長
+     */
     static my_buf *create(uint32_t len){
         auto *buf = (my_buf *) calloc(
                 1,sizeof(my_buf) + len);
@@ -23,6 +27,11 @@ struct my_buf{
         return buf;
     }
 
+    /**
+     * my_bufのメモリ開放
+     * @param buf
+     * @param is_recursive
+     */
     static void my_buf_free(my_buf *buf, bool is_recursive = false){
         if(!is_recursive){
             free(buf);
@@ -37,6 +46,9 @@ struct my_buf{
         }
     }
 
+    /**
+     * 連結リストの最後の項目を返す
+     */
     my_buf *get_tail_my_buf(){
         my_buf *current = this;
         while(current->next_my_buf != nullptr){

@@ -53,7 +53,7 @@ bool is_ignore_interface(const char *ifname){
 net_device *get_net_device_by_name(const char *name){
     net_device *dev;
     for(dev = net_dev_list; dev; dev = dev->next){
-        if(strcmp(dev->ifname, name) == 0){
+        if(strcmp(dev->name, name) == 0){
             return dev;
         }
     }
@@ -65,6 +65,7 @@ net_device *get_net_device_by_name(const char *name){
  */
 void configure(){
     // for chapter 3
+
     configure_ip_address(
             get_net_device_by_name("router1-host1"),
             IP_ADDRESS(192, 168, 1, 1),
@@ -76,6 +77,7 @@ void configure(){
     configure_ip_net_route(
             IP_ADDRESS(192, 168, 2, 0), 24,
             IP_ADDRESS(192, 168, 0, 2));
+
 
     // for chapter4
     /*
@@ -93,6 +95,14 @@ void configure(){
     configure_ip_net_route(IP_ADDRESS(192, 168, 2, 0), 24, IP_ADDRESS(192, 168, 0, 2));
     configure_ip_nat(get_net_device_by_name("router1-br0"), get_net_device_by_name("router1-router2"));
     */
+
+    /*
+    // for wsl
+    configure_ip_address(get_net_device_by_name("eth0"),
+                         IP_ADDRESS(172, 22, 21, 166),
+                         IP_ADDRESS(255, 255, 240, 0));
+    */
+
 }
 
 // 宣言のみ
@@ -109,7 +119,6 @@ struct net_device_data{
 
 /**
  * エントリーポイント
- * @return
  */
 int main(){
     struct ifreq ifr{};
@@ -135,14 +144,14 @@ int main(){
             int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
             if(sock == -1){
                 LOG_ERROR("socket open failed: %s\n", strerror(errno));
-                continue;
+                exit(EXIT_FAILURE);
             }
 
             // インターフェースのインデックスを取得
             if(ioctl(sock, SIOCGIFINDEX, &ifr) == -1){
                 LOG_ERROR("ioctl SIOCGIFINDEX failed: %s\n", strerror(errno));
                 close(sock);
-                continue;
+                exit(EXIT_FAILURE);
             }
 
             // socketにインターフェースをbindする
@@ -154,7 +163,7 @@ int main(){
             if(bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1){
                 LOG_ERROR("bind failed: %s\n", strerror(errno));
                 close(sock);
-                continue;
+                exit(EXIT_FAILURE);
             }
 
             // インターフェースのMACアドレスを取得
@@ -169,11 +178,11 @@ int main(){
             dev->ops.transmit = net_device_transmit; // 送信用の関数を設定
             dev->ops.poll = net_device_poll; // 受信用の関数を設定
 
-            strcpy(dev->ifname, tmp->ifa_name); // net_deviceにインターフェース名をセット
+            strcpy(dev->name, tmp->ifa_name); // net_deviceにインターフェース名をセット
             memcpy(dev->mac_addr, &ifr.ifr_hwaddr.sa_data[0], 6); // net_deviceにMACアドレスをセット
             ((net_device_data *) dev->data)->fd = sock;
 
-            printf("Created device %s socket %d address %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_addr));
+            printf("Created device %s socket %d address %s \n", dev->name, sock, mac_addr_toa(dev->mac_addr));
 
             // net_deviceの連結リストに連結させる
             net_device *next;
@@ -192,7 +201,7 @@ int main(){
     // 1つも有効化されたインターフェースをが無かったら終了
     if(net_dev_list == nullptr){
         LOG_ERROR("No interface is enabled!\n");
-        return 0;
+        exit(EXIT_FAILURE);
     }
 
     // IPルーティングテーブルの木構造のrootノードを作成
@@ -217,6 +226,7 @@ int main(){
         if(input != -1){ // なにも入力がなかったら
             if(input == 'a') dump_arp_table_entry();
             else if(input == 'r') dump_ip_fib();
+            else if(input == 'q') break;
 #ifdef ENABLE_NAT
             else if(input == 'n') dump_nat_tables();
 #endif
@@ -228,6 +238,7 @@ int main(){
             dev->ops.poll(dev);
         }
     }
+    printf("Goodbye!\n");
     return 0;
 }
 
@@ -236,7 +247,6 @@ int main(){
  * @param dev 送信に使用するデバイス
  * @param buffer 送信するバッファ
  * @param len バッファの長さ
- * @return
  */
 int net_device_transmit(struct net_device *dev,
         uint8_t *buffer, size_t len){
@@ -249,7 +259,6 @@ int net_device_transmit(struct net_device *dev,
 /**
  * ネットワークデバイスの受信処理
  * @param dev 受信を試みるデバイス
- * @return
  */
 int net_device_poll(net_device *dev){
     uint8_t recv_buffer[1550];
@@ -271,7 +280,7 @@ int net_device_poll(net_device *dev){
     /*
     // for book chapter 2
     printf("Received %lu bytes from %s: ",
-           n, dev->ifname);
+           n, dev->name);
     for(int i = 0; i < n; ++i){
         printf("%02x", dev->recv_buffer[i]);
     }

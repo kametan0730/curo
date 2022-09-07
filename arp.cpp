@@ -98,7 +98,7 @@ void dump_arp_table_entry(){
             printf("| %15s | %14s | %17s |  %04d |\n",
                    ip_htoa(entry->ip_addr),
                    mac_addr_toa(entry->mac_addr),
-                   entry->dev->ifname, i);
+                   entry->dev->name, i);
         }
     }
     printf("|-----------------|-------------------|-------------------|-------|\n");
@@ -110,7 +110,7 @@ void dump_arp_table_entry(){
  * @param search_ip
  */
 void send_arp_request(net_device *dev, uint32_t ip_addr){
-    LOG_ARP("Sending arp request via %s for %s\n", dev->ifname, ip_htoa(ip_addr));
+    LOG_ARP("Sending arp request via %s for %s\n", dev->name, ip_htoa(ip_addr));
 
     auto *arp_my_buf = my_buf::create(ARP_ETHERNET_PACKET_LEN);
     auto *arp_msg = reinterpret_cast<arp_ip_to_ethernet *>(arp_my_buf->buffer);

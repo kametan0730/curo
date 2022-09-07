@@ -37,7 +37,7 @@ void configure_ip_net_route(uint32_t prefix, uint32_t prefix_len, uint32_t next_
 void configure_ip_address(net_device *dev, uint32_t address, uint32_t netmask){
     if(dev == nullptr){
         LOG_ERROR("Configure net dev not found\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     // IPアドレスの登録
@@ -46,7 +46,7 @@ void configure_ip_address(net_device *dev, uint32_t address, uint32_t netmask){
     dev->ip_dev->netmask = netmask;
     dev->ip_dev->broadcast = (address & netmask) | (~netmask);
 
-    printf("Set ip address to %s\n", dev->ifname);
+    printf("Set ip address to %s\n", dev->name);
 
     // IPアドレスを設定すると同時に直接接続ルートを設定する
     ip_route_entry *entry;
@@ -65,7 +65,7 @@ void configure_ip_address(net_device *dev, uint32_t address, uint32_t netmask){
     binary_trie_add(ip_fib, address & netmask, len, entry);
 
     printf("Set directly connected route %s/%d via %s\n",
-           ip_htoa(address & netmask), len, dev->ifname);
+           ip_htoa(address & netmask), len, dev->name);
 }
 
 /**
@@ -75,22 +75,16 @@ void configure_ip_address(net_device *dev, uint32_t address, uint32_t netmask){
  */
 void configure_ip_nat(net_device *inside, net_device *outside){
 #ifdef ENABLE_NAT
-    if(inside == nullptr or outside == nullptr){
-        LOG_ERROR("Failed to configure NAT %s => %s\n", inside->ifname, outside->ifname);
-        exit(1); // プログラムを終了
+    if(inside == nullptr or outside == nullptr or inside->ip_dev == nullptr or outside->ip_dev == nullptr){
+        LOG_ERROR("Failed to configure NAT %s => %s\n", inside->name, outside->name);
+        exit(EXIT_FAILURE); // プログラムを終了
     }
 
-    if(inside->ip_dev == nullptr or outside->ip_dev == nullptr){
-        LOG_ERROR("Failed to configure NAT %s => %s\n", inside->ifname, outside->ifname);
-        exit(1); // プログラムを終了
-    }
-
-    inside->ip_dev->nat_inside_dev = (nat_inside_device *) calloc(1, sizeof(nat_inside_device));
-    inside->ip_dev->nat_inside_dev->entries = (nat_entries *) calloc(1, sizeof(nat_entries));
-    inside->ip_dev->nat_inside_dev->outside_address = outside->ip_dev->address;
+    inside->ip_dev->nat_dev = (nat_device *) calloc(1, sizeof(nat_device));
+    inside->ip_dev->nat_dev->entries = (nat_entries *) calloc(1, sizeof(nat_entries));
+    inside->ip_dev->nat_dev->outside_addr = outside->ip_dev->address;
 #else
     LOG_ERROR("NAT has not been enabled for this build\n");
-    exit(1);
+    exit(EXIT_FAILURE);
 #endif
-
 }

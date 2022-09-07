@@ -14,7 +14,7 @@ struct net_device_ops{
 struct ip_device;
 
 struct net_device{
-    char ifname[32]; // インターフェース名
+    char name[32]; // インターフェース名
     uint8_t mac_addr[6];
     net_device_ops ops;
     ip_device *ip_dev;
