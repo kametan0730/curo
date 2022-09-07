@@ -17,12 +17,12 @@
 #include "ip.h"
 #include "log.h"
 #include "my_buf.h"
-#include "napt.h"
+#include "nat.h"
 #include "net.h"
 #include "utils.h"
 
 /**
- * 無視するインターフェースたち
+ * 無視するネットワークインターフェースたち
  * 中にはMACアドレスを持たないものなど、
  * このプログラムで使うとエラーを引き起こすものもある
  */
@@ -218,7 +218,7 @@ int main(){
             if(input == 'a') dump_arp_table_entry();
             else if(input == 'r') dump_ip_fib();
 #ifdef ENABLE_NAPT
-            else if(input == 'n') dump_napt_tables();
+            else if(input == 'n') dump_nat_tables();
 #endif
         }
 #endif

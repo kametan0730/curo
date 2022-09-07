@@ -1,30 +1,30 @@
-#ifndef CURO_NAPT_H
-#define CURO_NAPT_H
+#ifndef CURO_NAT_H
+#define CURO_NAT_H
 
 #include <cstdint>
 #include "icmp.h"
 #include "ip.h"
 #include "utils.h"
 
-#define NAPT_GLOBAL_PORT_MIN 20000
-#define NAPT_GLOBAL_PORT_MAX 59999
+#define NAT_GLOBAL_PORT_MIN 20000
+#define NAT_GLOBAL_PORT_MAX 59999
 
-#define NAPT_GLOBAL_PORT_SIZE (NAPT_GLOBAL_PORT_MAX - NAPT_GLOBAL_PORT_MIN + 1)
+#define NAT_GLOBAL_PORT_SIZE (NAT_GLOBAL_PORT_MAX - NAT_GLOBAL_PORT_MIN + 1)
 
-#define NAPT_ICMP_ID_SIZE 0xffff
+#define NAT_ICMP_ID_SIZE 0xffff
 
 
-// NAPTの方向
-enum class napt_direction{
+// NATの方向
+enum class nat_direction{
     outgoing, incoming
 };
 
 // NATに対応しているプロトコル
-enum class napt_protocol{
+enum class nat_protocol{
     udp, tcp, icmp
 };
 
-struct napt_packet_head{
+struct nat_packet_head{
     union{
         struct{ // tcp, udp
             uint16_t src_port;
@@ -54,7 +54,7 @@ struct napt_packet_head{
     };
 };
 
-struct napt_entry{
+struct nat_entry{
     uint32_t global_address;
     uint32_t local_address;
     uint16_t global_port;
@@ -62,24 +62,24 @@ struct napt_entry{
 };
 
 // ICMP, UDP, TCPのNAPTテーブルのセット
-struct napt_entries{
-    napt_entry icmp[NAPT_ICMP_ID_SIZE];
-    napt_entry udp[NAPT_GLOBAL_PORT_SIZE];
-    napt_entry tcp[NAPT_GLOBAL_PORT_SIZE];
+struct nat_entries{
+    nat_entry icmp[NAT_ICMP_ID_SIZE];
+    nat_entry udp[NAT_GLOBAL_PORT_SIZE];
+    nat_entry tcp[NAT_GLOBAL_PORT_SIZE];
 };
 
-struct napt_inside_device{
+struct nat_inside_device{
     uint32_t outside_address; // 変換先のIPアドレス
-    napt_entries *entries; // NAPTテーブル
+    nat_entries *entries; // NAPTテーブル
 };
 
-void dump_napt_tables();
+void dump_nat_tables();
 
-bool napt_exec(ip_header *ip_packet, size_t len, napt_inside_device *napt_dev, napt_protocol proto, napt_direction direction);
+bool nat_exec(ip_header *ip_packet, size_t len, nat_inside_device *napt_dev, nat_protocol proto, nat_direction direction);
 
-napt_entry *get_napt_entry_by_global(napt_entries *entries, napt_protocol proto, uint32_t address, uint16_t id);
-napt_entry *get_napt_entry_by_local(napt_entries *entries, napt_protocol proto, uint32_t address, uint16_t port);
-napt_entry *create_napt_entry(napt_entries *entries, napt_protocol proto);
+nat_entry *get_nat_entry_by_global(nat_entries *entries, nat_protocol proto, uint32_t address, uint16_t id);
+nat_entry *get_nat_entry_by_local(nat_entries *entries, nat_protocol proto, uint32_t address, uint16_t port);
+nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto);
 
 
-#endif //CURO_NAPT_H
+#endif //CURO_NAT_H
