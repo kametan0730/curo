@@ -56,7 +56,11 @@ void icmp_input(uint32_t source, uint32_t destination, void *buffer, size_t len)
             memcpy(&reply_msg->echo.data, &icmp_msg->echo.data, len - (sizeof(icmp_header) + sizeof(icmp_echo))); // データをコピー
             reply_msg->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(reply_my_buf->buffer), reply_my_buf->len); // checksumの計算
 
-            ip_encapsulate_output(source, destination, reply_my_buf, IP_PROTOCOL_TYPE_ICMP);
+            ip_encapsulate_output(source,
+                                  destination,
+                                  reply_my_buf,
+                                  IP_PROTOCOL_NUM_ICMP
+                                  );
         }
             break;
 
@@ -92,7 +96,7 @@ void send_icmp_time_exceeded(uint32_t src_addr, uint32_t dest_addr, uint8_t code
     time_exceeded_msg->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(time_exceeded_my_buf->buffer),time_exceeded_my_buf->len);
 
     // IPで送信
-    ip_encapsulate_output(dest_addr, src_addr, time_exceeded_my_buf, IP_PROTOCOL_TYPE_ICMP);
+    ip_encapsulate_output(dest_addr, src_addr, time_exceeded_my_buf, IP_PROTOCOL_NUM_ICMP);
 }
 
 /**
@@ -121,5 +125,5 @@ void send_icmp_destination_unreachable(uint32_t src_addr, uint32_t dest_addr, ui
     unreachable_msg->header.checksum = checksum_16(reinterpret_cast<uint16_t *>(unreachable_my_buf->buffer), unreachable_my_buf->len);
 
     // IPで送信
-    ip_encapsulate_output(dest_addr, src_addr, unreachable_my_buf, IP_PROTOCOL_TYPE_ICMP);
+    ip_encapsulate_output(dest_addr, src_addr, unreachable_my_buf, IP_PROTOCOL_NUM_ICMP);
 }

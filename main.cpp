@@ -47,13 +47,13 @@ bool is_ignore_interface(const char *ifname){
 
 /**
  * インターフェース名からデバイスを探す
- * @param interface
+ * @param name デバイス名
  * @return
  */
-net_device *get_net_device_by_name(const char *interface){
+net_device *get_net_device_by_name(const char *name){
     net_device *dev;
     for(dev = net_dev_list; dev; dev = dev->next){
-        if(strcmp(dev->ifname, interface) == 0){
+        if(strcmp(dev->ifname, name) == 0){
             return dev;
         }
     }
@@ -145,7 +145,7 @@ int main(){
                 continue;
             }
 
-            // インターフェースをsocketにbindする
+            // socketにインターフェースをbindする
             sockaddr_ll addr{};
             memset(&addr, 0x00, sizeof(addr));
             addr.sll_family = AF_PACKET;
@@ -173,7 +173,7 @@ int main(){
             memcpy(dev->mac_addr, &ifr.ifr_hwaddr.sa_data[0], 6); // net_deviceにMACアドレスをセット
             ((net_device_data *) dev->data)->fd = sock;
 
-            printf("Created dev %s socket %d address %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_addr));
+            printf("Created device %s socket %d address %s \n", dev->ifname, sock, mac_addr_toa(dev->mac_addr));
 
             // net_deviceの連結リストに連結させる
             net_device *next;
@@ -186,7 +186,6 @@ int main(){
             fcntl(sock, F_SETFL, val | O_NONBLOCK); // Non blockingのビットをセット
         }
     }
-
     // 確保されていたメモリを解放
     freeifaddrs(addrs);
 
@@ -217,8 +216,10 @@ int main(){
         int input = getchar(); //
         if(input != -1){ // なにも入力がなかったら
             if(input == 'a') dump_arp_table_entry();
-            else if(input == 'n') dump_napt_tables();
             else if(input == 'r') dump_ip_fib();
+#ifdef ENABLE_NAPT
+            else if(input == 'n') dump_napt_tables();
+#endif
         }
 #endif
 

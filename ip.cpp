@@ -82,17 +82,17 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
            dev->ip_dev->napt_inside_dev->outside_address == ntohl(ip_packet->dest_addr)){
             bool napt_executed = false;
             switch(ip_packet->protocol){
-                case IP_PROTOCOL_TYPE_UDP:
+                case IP_PROTOCOL_NUM_UDP:
                     if(napt_exec(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_protocol::udp, napt_direction::incoming)){
                         napt_executed = true;
                     }
                     break;
-                case IP_PROTOCOL_TYPE_TCP:
+                case IP_PROTOCOL_NUM_TCP:
                     if(napt_exec(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_protocol::tcp, napt_direction::incoming)){
                         napt_executed = true;
                     }
                     break;
-                case IP_PROTOCOL_TYPE_ICMP:
+                case IP_PROTOCOL_NUM_ICMP:
                     if(napt_exec(ip_packet, len, dev->ip_dev->napt_inside_dev, napt_protocol::icmp, napt_direction::incoming)){
                         napt_executed = true;
                     }
@@ -117,7 +117,7 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
 
     // 上位プロトコルの処理に移行
     switch(ip_packet->protocol){
-        case IP_PROTOCOL_TYPE_ICMP:
+        case IP_PROTOCOL_NUM_ICMP:
             /*
             // for book chapter 3
             LOG_IP("ICMP received!\n");
@@ -130,7 +130,7 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
                     len - IP_HEADER_SIZE
                     );
 
-        case IP_PROTOCOL_TYPE_UDP:
+        case IP_PROTOCOL_NUM_UDP:
 #ifdef ENABLE_ICMP_ERROR
             send_icmp_destination_unreachable(
                     input_dev->ip_dev->address,
@@ -139,7 +139,7 @@ void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len){
                     ip_packet, len);
 #endif
             return;
-        case IP_PROTOCOL_TYPE_TCP:
+        case IP_PROTOCOL_NUM_TCP:
             // まだこのルータにはTCPを扱う機能はない
             return;
 
@@ -205,15 +205,15 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len){
 #ifdef ENABLE_NAPT
     // NAPTの内側から外側への通信
     if(input_dev->ip_dev->napt_inside_dev != nullptr){ // TODO これNATしないLAN内通信できない?
-        if(ip_packet->protocol == IP_PROTOCOL_TYPE_UDP){ // NAPTの対象
+        if(ip_packet->protocol == IP_PROTOCOL_NUM_UDP){ // NAPTの対象
             if(!napt_exec(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_protocol::udp, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ
             }
-        }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_TCP){
+        }else if(ip_packet->protocol == IP_PROTOCOL_NUM_TCP){
             if(!napt_exec(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_protocol::tcp, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ
             }
-        }else if(ip_packet->protocol == IP_PROTOCOL_TYPE_ICMP){
+        }else if(ip_packet->protocol == IP_PROTOCOL_NUM_ICMP){
             if(!napt_exec(ip_packet, len, input_dev->ip_dev->napt_inside_dev, napt_protocol::icmp, napt_direction::outgoing)){
                 return; // NAPTできないパケットはドロップ
             }
@@ -343,9 +343,9 @@ void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer){
  * @param dest_addr 送信先のIPアドレス
  * @param src_addr 送信元のIPアドレス
  * @param upper_layer_buffer 包んで送信するmy_buf構造体の先頭
- * @param protocol_type IPプロトコルタイプ
+ * @param protocol_num IPプロトコル番号
  */
-void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_layer_buffer, uint8_t protocol_type){
+void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_layer_buffer, uint8_t protocol_num){
 
     // 連結リストをたどってIPヘッダで必要なIPパケットの全長を算出する
     uint16_t total_len = 0;
@@ -365,7 +365,7 @@ void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *upper_
     ip_buf->header_len = sizeof(ip_header) >> 2;
     ip_buf->tos = 0;
     ip_buf->total_len = htons(sizeof(ip_header) + total_len);
-    ip_buf->protocol = protocol_type; // 8bit
+    ip_buf->protocol = protocol_num; // 8bit
 
     static uint16_t id = 0;
     ip_buf->identify = id++;

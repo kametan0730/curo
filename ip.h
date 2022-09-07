@@ -11,9 +11,9 @@
 
 #define IP_HEADER_SIZE 20
 
-#define IP_PROTOCOL_TYPE_ICMP 0x01
-#define IP_PROTOCOL_TYPE_TCP 0x06
-#define IP_PROTOCOL_TYPE_UDP 0x11
+#define IP_PROTOCOL_NUM_ICMP 0x01
+#define IP_PROTOCOL_NUM_TCP 0x06
+#define IP_PROTOCOL_NUM_UDP 0x11
 
 #define IP_FRAG_OFFSET_MASK_RESERVED_FLAG         0b1000000000000000
 #define IP_FRAG_OFFSET_MASK_DF_FLAG    0b0100000000000000
@@ -78,6 +78,6 @@ struct my_buf;
 void ip_output_to_host(net_device *dev, uint32_t src_address, uint32_t dest_address, my_buf *buffer);
 void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer);
 void ip_output(uint32_t src_addr, uint32_t dest_addr, my_buf *buffer);
-void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *buffer, uint8_t protocol_type);
+void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *buffer, uint8_t protocol_num);
 
 #endif //CURO_IP_H

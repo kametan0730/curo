@@ -88,7 +88,6 @@ void configure_ip_napt(net_device *inside, net_device *outside){
     inside->ip_dev->napt_inside_dev = (napt_inside_device *) calloc(1, sizeof(napt_inside_device));
     inside->ip_dev->napt_inside_dev->entries = (napt_entries *) calloc(1, sizeof(napt_entries));
     inside->ip_dev->napt_inside_dev->outside_address = outside->ip_dev->address;
-
 #else
     LOG_ERROR("NAPT has not been enabled for this build\n");
     exit(1);
