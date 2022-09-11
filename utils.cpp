@@ -79,24 +79,21 @@ const char *mac_addr_toa(const uint8_t *addr){
 
 /**
  * Checksumの計算
- * @param buffer
- * @param count
- * @param start
- * @return
+ * @param buffer 計算する対象のデータ
+ * @param count 計算するデータの長さ
+ * @param start 計算する初期値
+ * @return 計算されたチェックサム
  */
 uint16_t checksum_16(uint16_t *buffer, size_t count, uint16_t start){
   uint32_t sum = start;
-
   // まず16ビット毎に足す
   while(count > 1){
     sum += *buffer++;
     count -= 2;
   }
-
   // もし1バイト余ってたら足す
   if(count > 0)
     sum += *(uint8_t *) buffer;
-
   // あふれた桁を折り返して足す
   while(sum >> 16)
     sum = (sum & 0xffff) + (sum >> 16);
