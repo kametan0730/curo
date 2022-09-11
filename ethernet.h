@@ -15,9 +15,9 @@ const uint8_t ETHERNET_ADDRESS_BROADCAST[] =
         {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 struct ethernet_header{
-    uint8_t dest_addr[6]; // 宛先アドレス
-    uint8_t src_addr[6]; // 送信元アドレス
-    uint16_t type; // イーサタイプ
+  uint8_t dest_addr[6]; // 宛先アドレス
+  uint8_t src_addr[6]; // 送信元アドレス
+  uint16_t type; // イーサタイプ
 } __attribute__((packed));
 
 void ethernet_input(net_device *dev,

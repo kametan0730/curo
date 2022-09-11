@@ -21,43 +21,43 @@
 #define IP_FRAG_OFFSET_MASK_OFFSET                0b0001111111111111
 
 struct ip_header{
-    uint8_t header_len: 4;
-    uint8_t version: 4;
-    uint8_t tos;
-    uint16_t total_len;
-    uint16_t identify;
-    uint16_t frag_offset;
-    uint8_t ttl;
-    uint8_t protocol;
-    uint16_t header_checksum;
-    uint32_t src_addr;
-    uint32_t dest_addr;
+  uint8_t header_len: 4;
+  uint8_t version: 4;
+  uint8_t tos;
+  uint16_t total_len;
+  uint16_t identify;
+  uint16_t frag_offset;
+  uint8_t ttl;
+  uint8_t protocol;
+  uint16_t header_checksum;
+  uint32_t src_addr;
+  uint32_t dest_addr;
 } __attribute__((packed));
 
 struct nat_device;
 
 struct ip_device{
-    uint32_t address = 0; // デバイスのIPアドレス
-    uint32_t netmask = 0; // サブネットマスク
-    uint32_t broadcast = 0; // ブロードキャストアドレス
+  uint32_t address = 0; // デバイスのIPアドレス
+  uint32_t netmask = 0; // サブネットマスク
+  uint32_t broadcast = 0; // ブロードキャストアドレス
 #ifdef ENABLE_NAT
-    nat_device *nat_dev = nullptr;
+  nat_device *nat_dev = nullptr;
 #endif
 };
 
 enum ip_route_type{
-    connected, // 直接接続されているネットワークの経路　
-    network
+  connected, // 直接接続されているネットワークの経路　
+  network
 };
 
 struct net_device;
 
 struct ip_route_entry{
-    ip_route_type type;
-    union{
-        net_device *dev;
-        uint32_t next_hop;
-    };
+  ip_route_type type;
+  union{
+    net_device *dev;
+    uint32_t next_hop;
+  };
 };
 
 template<typename DATA_TYPE>
@@ -73,9 +73,9 @@ void ip_input(net_device *input_dev, uint8_t *buffer, ssize_t len);
 
 struct my_buf;
 
-void ip_output_to_host(net_device *dev, uint32_t dest_address, uint32_t src_address, my_buf *buffer);
-void ip_output_to_next_hop(uint32_t next_hop, my_buf *buffer);
-void ip_output(uint32_t dest_addr, uint32_t src_addr, my_buf *buffer);
+void ip_output_to_host(net_device *dev, uint32_t dest_address, uint32_t src_address, my_buf *payload_mybuf);
+void ip_output_to_next_hop(uint32_t next_hop, my_buf *payload_mybuf);
+void ip_output(uint32_t dest_addr, uint32_t src_addr, my_buf *payload_mybuf);
 void ip_encapsulate_output(uint32_t dest_addr, uint32_t src_addr, my_buf *payload_mybuf, uint8_t protocol_num);
 
 #endif //CURO_IP_H
