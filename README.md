@@ -8,7 +8,7 @@ curo is a software router
 ### Interface
 
 - [x] Raw socket with PF_PACKET
-- [ ] DPDK(Data Plane Development Kit)
+- [x] DPDK(Data Plane Development Kit)
 
 ### Network
 - [x] ARP Reply

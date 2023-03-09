@@ -115,11 +115,11 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool){
     dev->ops.transmit = net_device_transmit; // 送信用の関数を設定
     dev->ops.poll = net_device_poll; // 受信用の関数を設定
 
-    sprintf(dev->ifname, "dpdk%d", port); // net_deviceにインターフェース名(dpdkX)をセット
-    memcpy(dev->mac_address, addr.addr_bytes, 6); // net_deviceにMACアドレスをセット
+    sprintf(dev->name, "dpdk%d", port); // net_deviceにインターフェース名(dpdkX)をセット
+    memcpy(dev->mac_addr, addr.addr_bytes, 6); // net_deviceにMACアドレスをセット
     ((net_device_data *) dev->data)->port = port; // プラットフォーム依存データをセットｓ
 
-    printf("Created dev %s port %d address %s \n", dev->ifname, port, mac_addr_toa(dev->mac_address));
+    printf("Created dev %s port %d address %s \n", dev->name, port, mac_addr_toa(dev->mac_addr));
 
     // net_deviceの連結リストに連結させる
     net_device *next;
@@ -145,7 +145,7 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool){
 net_device *get_net_device_by_name(const char *interface){
     net_device *dev;
     for(dev = net_dev_list; dev; dev = dev->next){
-        if(strcmp(dev->ifname, interface) == 0){
+        if(strcmp(dev->name, interface) == 0){
             return dev;
         }
     }
