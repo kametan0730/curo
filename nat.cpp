@@ -64,16 +64,22 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev, nat_protoco
   // ICMPだったら、クエリーパケットのみNATする
   if(proto == nat_protocol::icmp and nat_packet->icmp.header.type != ICMP_TYPE_ECHO_REQUEST and
      nat_packet->icmp.header.type != ICMP_TYPE_ECHO_REPLY){
-    return false;
+
+      if(nat_packet->icmp.header.type != ICMP_TYPE_DESTINATION_UNREACHABLE){
+        proto = nat_protocol::icmp_error; // TODO impl
+      }else{
+        return false;
+      }
+      return false;
   }
 
   nat_entry *entry;
   if(direction == nat_direction::incoming){ // NATの外から内の通信の時
     if(proto == nat_protocol::icmp){ // ICMPの場合はIDを用いる
       entry = get_nat_entry_by_global(
-              nat_dev->entries, proto,
-              ntohl(ip_packet->dest_addr),
-              ntohs(nat_packet->icmp.identify));
+        nat_dev->entries, proto,
+        ntohl(ip_packet->dest_addr),
+        ntohs(nat_packet->icmp.identify));
     }else{ // UDP/TCPの時はポート番号
       entry = get_nat_entry_by_global(
               nat_dev->entries, proto,
@@ -96,8 +102,15 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev, nat_protoco
               ntohs(nat_packet->src_port));
     }
     if(entry == nullptr){
-      entry = create_nat_entry(
-              nat_dev->entries, proto); // NATテーブルエントリの作成
+
+      if(proto == nat_protocol::icmp){ // ICMP
+        entry = create_nat_entry(
+                nat_dev->entries, proto, ntohs(nat_packet->icmp.identify)); // NATテーブルエントリの作成
+      }else{ // TCP/UDP
+        entry = create_nat_entry(
+                nat_dev->entries, proto, ntohs(nat_packet->src_port)); // NATテーブルエントリの作成
+      }
+
       if(entry == nullptr){
         LOG_NAT("NAT table is full!\n");
         return false;
@@ -235,7 +248,44 @@ nat_entry *get_nat_entry_by_local(nat_entries *entries, nat_protocol proto, uint
 /**
  * 空いてるポートを探し、NATエントリを作成する
  */
-nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto){
+nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto, uint16_t desired){
+  do {
+
+    if(proto == nat_protocol::udp){ // UDPの場合
+
+      if(desired < NAT_GLOBAL_PORT_MIN or NAT_GLOBAL_PORT_MAX < desired){
+        break;
+      }
+
+      if(entries->udp[desired - NAT_GLOBAL_PORT_MIN].global_port == 0){
+        entries->udp[desired - NAT_GLOBAL_PORT_MIN].global_port = desired;
+        return &entries->udp[desired - NAT_GLOBAL_PORT_MIN];
+      }
+    }else if(proto == nat_protocol::tcp){
+
+      if(desired < NAT_GLOBAL_PORT_MIN or NAT_GLOBAL_PORT_MAX < desired){
+        break;
+      }
+
+      if(entries->tcp[desired - NAT_GLOBAL_PORT_MIN].global_port == 0){
+        entries->tcp[desired - NAT_GLOBAL_PORT_MIN].global_port = desired;
+        return &entries->tcp[desired - NAT_GLOBAL_PORT_MIN];
+      }
+
+    }else if(proto == nat_protocol::icmp){
+
+      if(NAT_ICMP_ID_SIZE < desired){
+        break;
+      }
+
+      if(entries->icmp[desired].global_addr == 0){
+        entries->icmp[desired].global_port = desired;
+        return &entries->icmp[desired];
+      }
+    }
+
+  } while (0);
+
   if(proto == nat_protocol::udp){ // UDPの場合
     for(int i = 0; i < NAT_GLOBAL_PORT_SIZE; ++i){ // NATテーブルのサイズ分
       if(entries->udp[i].global_addr == 0){
