@@ -7,7 +7,7 @@ jobs:
     name: ${{ join(matrix.config.*, '-') }}
     runs-on: ${{ matrix.config.os }}
     env:
-      CXX: ccache ${{ matrix.config.compiler }}
+      CXX: ${{ matrix.config.compiler }}
     strategy:
       fail-fast: false
       matrix:
