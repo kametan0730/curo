@@ -20,3 +20,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: make
       run: make
+    - name: get netns script
+      run: wget https://raw.githubusercontent.com/kametan0730/interface_2022_11/master/netns-scripts/chapter5-netns.sh -O netnsh.sh
+    - name: create netns
+      run: ./netnsh.sh
