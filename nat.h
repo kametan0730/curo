@@ -21,7 +21,7 @@ enum class nat_direction{
 
 // NATに対応しているプロトコル
 enum class nat_protocol{
-  udp, tcp, icmp
+  udp, tcp, icmp, icmp_error
 };
 
 struct nat_packet_head{
@@ -80,7 +80,7 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev, nat_protoco
 
 nat_entry *get_nat_entry_by_global(nat_entries *entries, nat_protocol proto, uint32_t addr, uint16_t port);
 nat_entry *get_nat_entry_by_local(nat_entries *entries, nat_protocol proto, uint32_t addr, uint16_t port);
-nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto);
+nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto, uint16_t desired);
 
 
 #endif //CURO_NAT_H
