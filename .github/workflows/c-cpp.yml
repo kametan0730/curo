@@ -22,6 +22,8 @@ jobs:
       run: make
     - name: create netns
       run: wget -O - https://raw.githubusercontent.com/kametan0730/interface_2022_11/master/netns-scripts/chapter5-netns.sh | sudo bash
+    - name: check netns
+      run: sudo ip netns exec router1 bash
     - name: run
       run: sudo ip netns exec router1 make run
 
