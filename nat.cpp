@@ -73,8 +73,8 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
     if (proto == nat_protocol::icmp and
         nat_packet->icmp.header.type != ICMP_TYPE_ECHO_REQUEST and
         nat_packet->icmp.header.type != ICMP_TYPE_ECHO_REPLY) {
-
-        if (nat_packet->icmp.header.type == ICMP_TYPE_DESTINATION_UNREACHABLE) {
+        if (nat_packet->icmp.header.type == ICMP_TYPE_TIME_EXCEEDED or
+            nat_packet->icmp.header.type == ICMP_TYPE_DESTINATION_UNREACHABLE) {
             proto = nat_protocol::icmp_error;
         } else {
             return false;
@@ -317,7 +317,7 @@ nat_entry *get_nat_entry_by_local(nat_entries *entries, nat_protocol proto,
 nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto,
                             uint16_t desired) {
 
-/*
+
     do {
         if (proto == nat_protocol::udp) { // UDPの場合
 
@@ -356,7 +356,7 @@ nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto,
 
     } while (0);
 
-*/
+
 
     if (proto == nat_protocol::udp) { // UDPの場合
         for (int i = 0; i < NAT_GLOBAL_PORT_SIZE;
