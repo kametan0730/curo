@@ -25,6 +25,7 @@ jobs:
     - name: check netns
       run: sudo ip netns exec router1 ip a
     - name: run
-      run: sudo ip netns exec router1 make run
-
-
+      run: sudo ip netns exec router1 make run &
+    - name: ping
+      run: sudo ip netns exec host0 ping -c 4 192.168.1.1
+      
