@@ -73,12 +73,12 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
     if (proto == nat_protocol::icmp and
         nat_packet->icmp.header.type != ICMP_TYPE_ECHO_REQUEST and
         nat_packet->icmp.header.type != ICMP_TYPE_ECHO_REPLY) {
-        if (nat_packet->icmp.header.type != ICMP_TYPE_DESTINATION_UNREACHABLE) {
-            proto = nat_protocol::icmp_error; // TODO impl
+
+        if (nat_packet->icmp.header.type == ICMP_TYPE_DESTINATION_UNREACHABLE) {
+            proto = nat_protocol::icmp_error;
         } else {
             return false;
         }
-        return false;
     }
 
     nat_entry *entry;
@@ -87,32 +87,54 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
             entry = get_nat_entry_by_global(nat_dev->entries, proto,
                                             ntohl(ip_packet->dest_addr),
                                             ntohs(nat_packet->icmp.identify));
+        } else if (proto == nat_protocol::icmp_error) { // ICMPエラーの場合、エラーパケットの中身を用いる
+            LOG_NAT("debug %d %d %x\n", ntohs(nat_packet->icmp_error.dest_port),
+                    ntohs(nat_packet->icmp_error.src_port),
+                    nat_packet->icmp_error.error_iph.protocol);
+            if (nat_packet->icmp_error.error_iph.protocol == IP_PROTOCOL_NUM_UDP) {
+                entry = get_nat_entry_by_global(
+                    nat_dev->entries, nat_protocol::udp,
+                    ntohl(nat_packet->icmp_error.error_iph.src_addr),
+                    ntohs(nat_packet->icmp_error.src_port));
+            } else if (nat_packet->icmp_error.error_iph.protocol == IP_PROTOCOL_NUM_TCP) {
+                entry = get_nat_entry_by_global(
+                    nat_dev->entries, nat_protocol::tcp,
+                    ntohl(nat_packet->icmp_error.error_iph.src_addr),
+                    ntohs(nat_packet->icmp_error.src_port));
+            } else { // UDP/TCP以外の場合、扱えないのでfalseを返す
+                LOG_NAT("Unsupported nat error ip packet protocol\n");
+                return false;
+            }
         } else { // UDP/TCPの時はポート番号
             entry = get_nat_entry_by_global(nat_dev->entries, proto,
                                             ntohl(ip_packet->dest_addr),
                                             ntohs(nat_packet->dest_port));
         }
-        if (entry ==
-            nullptr) { // NATエントリが登録されていない場合、falseを返す
+        if (entry == nullptr) { // NATエントリが登録されていない場合、falseを返す
             return false;
         }
-    } else {                               // NATの内から外の通信の時
+    } else { // NATの内から外の通信の時
         if (proto == nat_protocol::icmp) { // ICMP
             entry = get_nat_entry_by_local(nat_dev->entries, proto,
                                            ntohl(ip_packet->src_addr),
                                            ntohs(nat_packet->icmp.identify));
+        } else if (proto == nat_protocol::icmp_error) {
+            LOG_NAT("Outgoing icmp error is not supported\n");
+            return false;
         } else { // TCP/UDP
             entry = get_nat_entry_by_local(nat_dev->entries, proto,
                                            ntohl(ip_packet->src_addr),
                                            ntohs(nat_packet->src_port));
         }
         if (entry == nullptr) {
+
             if (proto == nat_protocol::icmp) { // ICMP
                 entry = create_nat_entry(
                     nat_dev->entries, proto,
-                    ntohs(nat_packet->icmp
-                              .identify)); // NATテーブルエントリの作成
-            } else {                       // TCP/UDP
+                    ntohs(nat_packet->icmp.identify)); // NATテーブルエントリの作成
+            } else if (proto == nat_protocol::icmp_error) {
+                return false; // ICMPエラーの場合、そのエラーの元となったパケットのエントリがないと通過できないので、エントリの新規作成は行わない
+            } else { // TCP/UDP
                 entry = create_nat_entry(
                     nat_dev->entries, proto,
                     ntohs(nat_packet->src_port)); // NATテーブルエントリの作成
@@ -144,7 +166,21 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
         } else {
             checksum += htons(entry->global_port);
         }
-    } else {
+    }else if(proto == nat_protocol::icmp_error){
+
+        checksum = nat_packet->icmp.header.checksum;
+        checksum = ~checksum;
+
+        // only incoming
+        checksum -= nat_packet->icmp_error.error_iph.src_addr & 0xffff;
+        checksum -= nat_packet->icmp_error.error_iph.src_addr >> 16;
+        checksum += htonl(entry->local_addr) & 0xffff;
+        checksum += htonl(entry->local_addr) >> 16;
+
+        checksum -= htons(entry->global_port);
+        checksum += htons(entry->local_port);
+
+    } else { // UDP/TCP
         if (proto == nat_protocol::udp) { // UDP
             checksum = nat_packet->udp.checksum;
         } else { // TCP
@@ -174,17 +210,26 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
         checksum = (checksum & 0xffff) + (checksum >> 16);
     }
 
+    // checksumの書き換え
     if (proto == nat_protocol::icmp) { // ICMP
+        nat_packet->icmp.header.checksum = checksum;
+    } else if (proto == nat_protocol::icmp_error) { // ICMP Error
         nat_packet->icmp.header.checksum = checksum;
     } else if (proto == nat_protocol::udp) { // UDP
         nat_packet->udp.checksum = checksum;
     } else { // TCP
         nat_packet->tcp.checksum = checksum;
     }
+
+    // アドレスなどの書き換え
     if (direction == nat_direction::incoming) {
         ip_packet->dest_addr = htonl(entry->local_addr);
         if (proto == nat_protocol::icmp) { // ICMP
             nat_packet->icmp.identify = htons(entry->local_port);
+        } else if (proto == nat_protocol::icmp_error) { // ICMPエラー
+            nat_packet->icmp_error.error_iph.src_addr = htonl(entry->local_addr);
+            nat_packet->icmp_error.src_port = htons(entry->local_port);
+
         } else { // UDP/TCP
             nat_packet->dest_port = htons(entry->local_port);
         }
@@ -192,14 +237,16 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
         ip_packet->src_addr = htonl(nat_dev->outside_addr);
         if (proto == nat_protocol::icmp) { // ICMP
             nat_packet->icmp.identify = htons(entry->global_port);
+        } else if (proto == nat_protocol::icmp_error) { // ICMPエラー
+
         } else { // UDP/TCP
             nat_packet->src_port = htons(entry->global_port);
         }
     }
+
     // IPヘッダのヘッダチェックサムの再計算
     ip_packet->header_checksum = 0;
-    ip_packet->header_checksum =
-        checksum_16(reinterpret_cast<uint16_t *>(ip_packet), sizeof(ip_header));
+    ip_packet->header_checksum = checksum_16(reinterpret_cast<uint16_t *>(ip_packet), sizeof(ip_header));
 
     return true;
 }
@@ -267,6 +314,8 @@ nat_entry *get_nat_entry_by_local(nat_entries *entries, nat_protocol proto,
  */
 nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto,
                             uint16_t desired) {
+
+/*
     do {
         if (proto == nat_protocol::udp) { // UDPの場合
 
@@ -304,6 +353,8 @@ nat_entry *create_nat_entry(nat_entries *entries, nat_protocol proto,
         }
 
     } while (0);
+
+*/
 
     if (proto == nat_protocol::udp) { // UDPの場合
         for (int i = 0; i < NAT_GLOBAL_PORT_SIZE;

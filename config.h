@@ -11,11 +11,11 @@
  * 1 Print debug message
  */
 
-#define DEBUG_ETHERNET 1
-#define DEBUG_IP 1
-#define DEBUG_ARP 1
-#define DEBUG_ICMP 1
-#define DEBUG_NAT 1
+#define DEBUG_ETHERNET  1
+#define DEBUG_IP        1
+#define DEBUG_ARP       1
+#define DEBUG_ICMP      1
+#define DEBUG_NAT       1
 
 // #define ENABLE_MYBUF_NON_COPY_MODE // パケット転送時にバッファのコピーを削減するか
 #define ENABLE_NAT        // NATを有効にするか

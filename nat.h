@@ -45,6 +45,13 @@ struct nat_packet_head {
             uint16_t identify;
             uint16_t sequence;
         } icmp;
+        struct { // icmp error
+            icmp_header header;
+            uint32_t unused;
+            ip_header error_iph;
+            uint16_t src_port;
+            uint16_t dest_port;
+        } icmp_error;
     };
 };
 

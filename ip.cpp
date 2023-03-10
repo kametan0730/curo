@@ -70,32 +70,38 @@ bool in_subnet(uint32_t subnet_prefix, uint32_t subnet_mask,
 void ip_input_to_ours(net_device *input_dev, ip_header *ip_packet, size_t len) {
 
 #ifdef ENABLE_NAT
-    // NATの外側から内側への通信か判断
-    for (net_device *dev = net_dev_list; dev; dev = dev->next) {
-        if (dev->ip_dev != nullptr and dev->ip_dev->nat_dev != nullptr and
-            dev->ip_dev->nat_dev->outside_addr == ntohl(ip_packet->dest_addr)) {
-            bool nat_executed = false;
-            switch (ip_packet->protocol) {
-                case IP_PROTOCOL_NUM_UDP:
-                    if (nat_exec(ip_packet, len, dev->ip_dev->nat_dev,
-                                 nat_protocol::udp, nat_direction::incoming)) {
-                        nat_executed = true;
-                    }
-                    break;
-                case IP_PROTOCOL_NUM_TCP:
-                    if (nat_exec(ip_packet, len, dev->ip_dev->nat_dev,
-                                 nat_protocol::tcp, nat_direction::incoming)) {
-                        nat_executed = true;
-                    }
-                    break;
-                case IP_PROTOCOL_NUM_ICMP:
-                    if (nat_exec(ip_packet, len, dev->ip_dev->nat_dev,
-                                 nat_protocol::icmp, nat_direction::incoming)) {
-                        nat_executed = true;
-                    }
-                    break;
-            }
-            if (nat_executed) {
+  // NATの外側から内側への通信か判断
+  for(net_device *dev = net_dev_list; dev; dev = dev->next){
+    if(dev->ip_dev != nullptr and dev->ip_dev->nat_dev != nullptr and
+       dev->ip_dev->nat_dev->outside_addr == ntohl(ip_packet->dest_addr)){
+      bool nat_executed = false;
+      switch(ip_packet->protocol){
+        case IP_PROTOCOL_NUM_UDP:
+          if(nat_exec(ip_packet, len,
+                      dev->ip_dev->nat_dev,
+                      nat_protocol::udp,
+                      nat_direction::incoming)){
+            nat_executed = true;
+          }
+          break;
+        case IP_PROTOCOL_NUM_TCP:
+          if(nat_exec(ip_packet, len,
+                      dev->ip_dev->nat_dev,
+                      nat_protocol::tcp,
+                      nat_direction::incoming)){
+            nat_executed = true;
+          }
+          break;
+        case IP_PROTOCOL_NUM_ICMP:
+          if(nat_exec(ip_packet, len,
+                      dev->ip_dev->nat_dev,
+                      nat_protocol::icmp,
+                      nat_direction::incoming)){
+            nat_executed = true;
+          }
+          break;
+      }
+      if(nat_executed){
 #ifdef ENABLE_MYBUF_NON_COPY_MODE
                 my_buf *nat_fwd_mybuf = my_buf::create(0);
                 nat_fwd_mybuf->buf_ptr = (uint8_t *)ip_packet;
