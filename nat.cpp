@@ -67,8 +67,8 @@ void dump_nat_tables() {
  */
 bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
               nat_protocol proto, nat_direction direction) {
-    auto *nat_packet =
-        (nat_packet_head *)((uint8_t *)ip_packet + sizeof(ip_header));
+    nat_packet_head *nat_packet;
+    nat_packet = (nat_packet_head *)((uint8_t *)ip_packet + sizeof(ip_header));
     // ICMPだったら、クエリーパケットのみNATする
     if (proto == nat_protocol::icmp and
         nat_packet->icmp.header.type != ICMP_TYPE_ECHO_REQUEST and
@@ -88,9 +88,11 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
                                             ntohl(ip_packet->dest_addr),
                                             ntohs(nat_packet->icmp.identify));
         } else if (proto == nat_protocol::icmp_error) { // ICMPエラーの場合、エラーパケットの中身を用いる
-            LOG_NAT("debug %d %d %x\n", ntohs(nat_packet->icmp_error.dest_port),
-                    ntohs(nat_packet->icmp_error.src_port),
-                    nat_packet->icmp_error.error_iph.protocol);
+
+            if (len < sizeof(ip_header) + sizeof(icmp_dest_unreachable) + sizeof(ip_header) + sizeof(uint16_t) * 2) {
+                return false;
+            }
+
             if (nat_packet->icmp_error.error_iph.protocol == IP_PROTOCOL_NUM_UDP) {
                 entry = get_nat_entry_by_global(
                     nat_dev->entries, nat_protocol::udp,
@@ -229,7 +231,7 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
         } else if (proto == nat_protocol::icmp_error) { // ICMPエラー
             nat_packet->icmp_error.error_iph.src_addr = htonl(entry->local_addr);
             nat_packet->icmp_error.src_port = htons(entry->local_port);
-
+            // TODO エラーパケットのIPヘッダchecksumも更新した方良いかも
         } else { // UDP/TCP
             nat_packet->dest_port = htons(entry->local_port);
         }
@@ -238,7 +240,7 @@ bool nat_exec(ip_header *ip_packet, size_t len, nat_device *nat_dev,
         if (proto == nat_protocol::icmp) { // ICMP
             nat_packet->icmp.identify = htons(entry->global_port);
         } else if (proto == nat_protocol::icmp_error) { // ICMPエラー
-
+            // Outgoinには非対応
         } else { // UDP/TCP
             nat_packet->src_port = htons(entry->global_port);
         }
