@@ -13,13 +13,13 @@ curo is a software router
 ### Network
 - [x] ARP Reply
 - [x] ARP Request
-- [x] Unlimited IP Routing Table
+- [x] Trie IP Routing Table
 - [x] IP Forwarding
 - [x] ICMP Echo Reply
 - [x] ICMP Time Exceeded
 - [x] ICMP Destination Unreachable
 - [x] NAT (UDP,TCP,ICMP(Query))
-- [ ] NAT (ICMP(Error))
+- [x] NAT (ICMP(Error))
 
 ## Build
 ```shell
