@@ -6,22 +6,16 @@ jobs:
   build:
     name: ${{ join(matrix.config.*, '-') }}
     runs-on: ${{ matrix.config.os }}
+    env:
+      CXX: ccache ${{ matrix.config.compiler }}
     strategy:
       fail-fast: false
       matrix:
         config:
           - os: ubuntu-latest
-            compiler: gcc
-            mini: mini
+            compiler: g++
           - os: ubuntu-latest
-            compiler: clang
-            checks: asan+doc+tests
-          - os: ubuntu-latest
-            compiler: gcc
-            cross: aarch64
-          - os: ubuntu-latest
-            compiler: gcc
-            cross: riscv64
+            compiler: clang++
     steps:
     - uses: actions/checkout@v3
     - name: make
