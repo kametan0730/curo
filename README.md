@@ -5,10 +5,11 @@ curo is a software router
 
 ## Functions
 
-### Interface
+### Platform
 
-- [x] Raw socket with PF_PACKET
+- [x] PF_PACKET (Raw socket for linux)
 - [x] DPDK(Data Plane Development Kit)
+- [ ] XDP (eXpress Data Path)
 
 ### Network
 - [x] ARP Reply
@@ -29,7 +30,7 @@ cd curo
 make all
 ```
 
-## Example (Raw socket with PF_PACKET)
+## Example (for PF_PACKET)
 ### 0. Download sources and build
 
 ### 1. Create environment with network namespace
@@ -76,7 +77,7 @@ ip netns exec host2 ip route add default via 192.168.2.1
 ```
 
 ### 2. Config
-#### Open main.cpp and change configure function as follows
+#### Open pf_packet/main.cpp and change configure function as follows
 ```cpp
 void configure(){
     configure_ip_address(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
