@@ -3,7 +3,7 @@ OUTDIR	= ./build
 TARGET	= $(OUTDIR)/curo
 SOURCES	= $(wildcard *.cpp)
 OBJECTS	= $(addprefix $(OUTDIR)/, $(SOURCES:.cpp=.o))
-LIBCURO = ../build/libcuro.so
+LIBCURO_SHARED = ../build/libcuro.so
 
 CFLAGS = -I../
 
@@ -19,7 +19,7 @@ run: $(TARGET)
 	./build/curo
 
 $(TARGET): $(OBJECTS) Makefile
-	$(CXX) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LIBCURO)
+	$(CXX) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LIBCURO_SHARED)
 
 $(OUTDIR)/%.o: %.cpp Makefile
 	mkdir -p build

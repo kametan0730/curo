@@ -2,10 +2,12 @@
 # Copyright(c) 2010-2014 Intel Corporation
 
 # binary name
-APP = curo_dpdk
+APP = curo-dpdk
 
 # all source are stored in SRCS-y
-SOURCES := dpdk_main.cpp $(filter-out ../main.cpp, $(wildcard ../*.cpp))
+SOURCES := dpdk_main.cpp
+
+LIBCURO_STATIC = ../build/libcuro.a
 
 PKGCONF ?= pkg-config
 
@@ -37,10 +39,10 @@ endif
 CPPFLAGS += -DALLOW_EXPERIMENTAL_API
 
 build/$(APP)-shared: $(SOURCES) Makefile $(PC_FILE) | build
-	$(CXX) $(CPPFLAGS) $(SOURCES) -o $@ $(LDFLAGS) $(LDFLAGS_SHARED)
+	$(CXX) $(CPPFLAGS) $(SOURCES) $(LIBCURO_STATIC) -o $@ $(LDFLAGS) $(LDFLAGS_SHARED)
 
 build/$(APP)-static: $(SOURCES) Makefile $(PC_FILE) | build
-	$(CXX) $(CPPFLAGS) $(SOURCES) -o $@ $(LDFLAGS) $(LDFLAGS_STATIC)
+	$(CXX) $(CPPFLAGS) $(SOURCES) $(LIBCURO_STATIC) -o $@ $(LDFLAGS) $(LDFLAGS_STATIC)
 
 build:
 	@mkdir -p $@
