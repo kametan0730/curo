@@ -101,6 +101,7 @@ void configure() {
     */
 
     // for chapter 6
+    /*
     configure_ip_address(get_net_device_by_name("router1-br0"),
                          IP_ADDRESS(192, 168, 1, 1),
                          IP_ADDRESS(255, 255, 255, 0));
@@ -111,6 +112,7 @@ void configure() {
                            IP_ADDRESS(192, 168, 0, 2));
     configure_ip_nat(get_net_device_by_name("router1-br0"),
                      get_net_device_by_name("router1-router2"));
+    */
 
     /*
     // for wsl
@@ -118,6 +120,11 @@ void configure() {
                          IP_ADDRESS(172, 22, 21, 166),
                          IP_ADDRESS(255, 255, 240, 0));
     */
+
+    configure_ip_address(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
+    configure_ip_address(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
+    configure_ip_net_route(IP_ADDRESS(192, 168, 2, 0), 24, IP_ADDRESS(192, 168, 0, 2));
+
 }
 
 // 宣言のみ

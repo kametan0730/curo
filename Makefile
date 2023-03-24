@@ -1,23 +1,39 @@
 #!/bin/make
 OUTDIR	= ./build
-TARGET	= $(OUTDIR)/curo
 SOURCES	= $(wildcard *.cpp)
 OBJECTS	= $(addprefix $(OUTDIR)/, $(SOURCES:.cpp=.o))
 
+STATIC_LIB	= $(OUTDIR)/libcuro.a
+SHARED_LIB	= $(OUTDIR)/libcuro.so
+
+CFLAGS = -fPIC
+
+PLATFORM = pf_packet
+
 .PHONY: all
-all: $(TARGET)
+all: $(STATIC_LIB) $(SHARED_LIB)
+
+.PHONY: static
+static: $(STATIC_LIB)
+
+.PHONY: shared
+shared: $(SHARED_LIB)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) $(TARGET)
+	$(RM) $(OBJECTS) $(LIBCURO)
 
 .PHONY: run
 run: $(TARGET)
-	./build/curo
+	make -C $(PLATFORM) run
 
-$(TARGET): $(OBJECTS) Makefile
-	$(CXX) -o $(TARGET) $(OBJECTS)
+$(STATIC_LIB): $(OBJECTS) Makefile
+	$(AR) rcs $(STATIC_LIB) $(OBJECTS) 
+
+$(SHARED_LIB): $(OBJECTS) Makefile
+	$(CXX) $(CFLAGS) -shared -o $(SHARED_LIB) $(OBJECTS) 
+
 
 $(OUTDIR)/%.o: %.cpp Makefile
 	mkdir -p build
-	$(CXX) -o $@ -c $<
+	$(CXX) $(CFLAGS) -o $@ -c $<
