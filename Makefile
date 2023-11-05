@@ -21,7 +21,7 @@ shared: $(SHARED_LIB)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) $(LIBCURO)
+	$(RM) $(OBJECTS) $(STATIC_LIB) $(SHARED_LIB)
 
 .PHONY: run
 run: $(TARGET)
