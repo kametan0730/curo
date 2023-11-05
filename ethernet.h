@@ -14,6 +14,9 @@
 const uint8_t ETHERNET_ADDRESS_BROADCAST[] = {0xff, 0xff, 0xff,
                                               0xff, 0xff, 0xff};
 
+const uint8_t ETHERNET_ADDRESS_IPV6_MCAST_PREFIX[] = {0x33, 0x33};
+
+
 struct ethernet_header {
     uint8_t dest_addr[6]; // 宛先アドレス
     uint8_t src_addr[6];  // 送信元アドレス
