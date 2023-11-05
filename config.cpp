@@ -2,6 +2,7 @@
 
 #include "binary_trie.h"
 #include "ip.h"
+#include "ipv6.h"
 #include "log.h"
 #include "nat.h"
 #include "net.h"
@@ -91,4 +92,26 @@ void configure_ip_nat(net_device *inside, net_device *outside) {
     LOG_ERROR("NAT has not been enabled for this build\n");
     exit(EXIT_FAILURE);
 #endif
+}
+
+
+/**
+ * デバイスにIPアドレスを設定
+ * @param dev
+ * @param address
+ * @param netmask
+ */
+void configure_ipv6_address(net_device *dev, ipv6_addr address, uint32_t prefix_len) {
+    if (dev == nullptr) {
+        LOG_ERROR("Configure net dev not found\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // IPアドレスの登録
+    dev->ipv6_dev = (ipv6_device *)calloc(1, sizeof(ipv6_device));
+    dev->ipv6_dev->address = address;
+    dev->ipv6_dev->prefix_len = prefix_len;
+    dev->ipv6_dev->net_dev = dev;
+
+    printf("Set ipv6 address to %s\n", ipv6toascii(address));
 }

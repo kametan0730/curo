@@ -3,6 +3,7 @@
 #include "arp.h"
 #include "config.h"
 #include "ip.h"
+#include "ipv6.h"
 #include "log.h"
 #include "my_buf.h"
 #include "utils.h"
@@ -20,9 +21,11 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len) {
     uint16_t ether_type = ntohs(
         header->type); // イーサタイプを抜き出すし、ホストバイトオーダーに変換
 
-    // 自分のMACアドレス宛てかブロードキャストの通信かを確認する
+    // 自分のMACアドレス宛てかブロードキャスト/マルチキャストの通信かを確認する
     if (memcmp(header->dest_addr, dev->mac_addr, 6) != 0 and
-        memcmp(header->dest_addr, ETHERNET_ADDRESS_BROADCAST, 6) != 0) {
+        memcmp(header->dest_addr, ETHERNET_ADDRESS_BROADCAST, 6) != 0 and
+        memcmp(header->dest_addr, ETHERNET_ADDRESS_IPV6_MCAST_PREFIX, 2) != 0
+        ) {
         return;
     }
 
@@ -40,6 +43,12 @@ void ethernet_input(net_device *dev, uint8_t *buffer, ssize_t len) {
             return ip_input(
                 dev, buffer + ETHERNET_HEADER_SIZE,
                 len - ETHERNET_HEADER_SIZE); // Ethernetヘッダを外してIP処理へ
+#ifdef ENABLE_IPV6
+        case ETHER_TYPE_IPV6: // イーサタイプがIPのものだったら
+            return ipv6_input(
+                dev, buffer + ETHERNET_HEADER_SIZE,
+                len - ETHERNET_HEADER_SIZE); // Ethernetヘッダを外してIP処理へ
+#endif
         default: // 知らないイーサタイプだったら
             LOG_ETHERNET("Received unhandled ether type %04x\n", ether_type);
             return;

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "config.h"
 
 struct net_device;
 
@@ -12,12 +13,16 @@ struct net_device_ops {
 };
 
 struct ip_device;
+struct ipv6_device;
 
 struct net_device {
     char name[32]; // インターフェース名
     uint8_t mac_addr[6];
     net_device_ops ops;
     ip_device *ip_dev;
+#ifdef ENABLE_IPV6
+    ipv6_device *ipv6_dev;
+#endif
     net_device *next;
     uint8_t data[];
 };

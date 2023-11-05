@@ -1,12 +1,3 @@
-#include "arp.h"
-#include "binary_trie.h"
-#include "config.h"
-#include "ethernet.h"
-#include "ip.h"
-#include "log.h"
-#include "nat.h"
-#include "net.h"
-#include "utils.h"
 #include <cstdint>
 #include <fcntl.h>
 #include <ifaddrs.h>
@@ -17,6 +8,18 @@
 #include <sys/socket.h>
 #include <termios.h>
 #include <unistd.h>
+
+#include "arp.h"
+#include "binary_trie.h"
+#include "config.h"
+#include "ethernet.h"
+#include "ip.h"
+#include "ipv6.h"
+#include "log.h"
+#include "nat.h"
+#include "nd.h"
+#include "net.h"
+#include "utils.h"
 
 /**
  * 無視するネットワークインターフェースたち
@@ -123,6 +126,14 @@ void configure() {
 
     configure_ip_address(get_net_device_by_name("router1-host1"), IP_ADDRESS(192, 168, 1, 1), IP_ADDRESS(255, 255, 255, 0));
     configure_ip_address(get_net_device_by_name("router1-router2"), IP_ADDRESS(192, 168, 0, 1), IP_ADDRESS(255, 255, 255, 0));
+
+    ipv6_addr addr6;
+    addr6.per_16.int1 = htons(0x2001);
+    addr6.per_16.int2 = htons(0x0db8);
+    addr6.per_16.int3 = htons(0x0001);
+    addr6.per_16.int8 = htons(0x0001);
+
+    configure_ipv6_address(get_net_device_by_name("router1-host1"), addr6, 64);
     configure_ip_net_route(IP_ADDRESS(192, 168, 2, 0), 24, IP_ADDRESS(192, 168, 0, 2));
 
 }
@@ -254,8 +265,12 @@ int main() {
         int input = getchar(); // 入力を受け取る
         if (input != -1) {     // 入力があったら
             printf("\n");
-            if (input == 'a')
+            if (input == 'a'){
                 dump_arp_table_entry();
+#ifdef ENABLE_IPV6
+                dump_nd_table_entry();
+#endif
+            }
             else if (input == 'r')
                 dump_ip_fib();
             else if (input == 'q')

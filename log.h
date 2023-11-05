@@ -33,6 +33,13 @@
 #define LOG_NAT(...)
 #endif
 
+#if DEBUG_IPV6 > 0
+#define LOG_IPV6(...) printf("[IPv6] ");printf(__VA_ARGS__);
+#else
+#define LOG_IPV6(...)
+#endif
+
+
 #define LOG_ERROR(...) fprintf(stderr, "[ERROR %s:%d] ", __FILE__, __LINE__);fprintf(stderr, __VA_ARGS__);
 
 #endif //CURO_LOG_H
