@@ -27,6 +27,22 @@ char* ipv6toascii(ipv6_addr addr){
     return ipv6ascii;
 }
 
+/**
+ * 自分宛のIPパケットの処理
+ * @param input_dev
+ * @param ip_packet
+ * @param len
+ */
+void ipv6_input_to_ours(net_device *input_dev, ipv6_header *packet, size_t len) {
+
+    switch (packet->next_hdr) {
+    case IPV6_PROTOCOL_NUM_ICMP:
+        return icmpv6_input(input_dev->ipv6_dev, packet->src_addr, packet->dest_addr, ((uint8_t *)packet) + sizeof(ipv6_header), len - sizeof(ipv6_header));
+    default:
+        break;
+    }
+}
+
 void ipv6_input(net_device *input_dev, uint8_t *buffer, ssize_t len) {
 
     if(input_dev->ipv6_dev == nullptr){
@@ -46,18 +62,24 @@ void ipv6_input(net_device *input_dev, uint8_t *buffer, ssize_t len) {
         return;
     }
 
-    printf("Next: %02x\n", packet->next_hdr);
+    LOG_IPV6("Next header: 0x%02x\n", packet->next_hdr);
 
-    LOG_IP("src: %s\n", ipv6toascii(packet->src_addr));
+    LOG_IPV6("Src: %s\n", ipv6toascii(packet->src_addr));
 
-    LOG_IP("dst: %s\n", ipv6toascii(packet->dest_addr));
+    LOG_IPV6("Dst: %s\n", ipv6toascii(packet->dest_addr));
 
-    switch (packet->next_hdr) {
-    case IPV6_PROTOCOL_NUM_ICMP:
-        return icmpv6_input(input_dev->ipv6_dev, packet->src_addr, packet->dest_addr, ((uint8_t *)packet) + sizeof(ipv6_header), len - sizeof(ipv6_header));
-    default:
-        break;
+    // 宛先IPアドレスをルータが持ってるか調べる
+    for (net_device *dev = net_dev_list; dev; dev = dev->next) {
+        if (dev->ipv6_dev != nullptr) {
+            // 宛先IPアドレスがルータの持っているIPアドレスの処理
+            if (memcmp(&dev->ipv6_dev->address, &packet->dest_addr, 16) == 0) {
+                return ipv6_input_to_ours(dev, packet, len); // 自分宛の通信として処理
+            }
+        }
     }
+
+
+    // ルーティングのための処理
 }
 
 void ipv6_encap_dev_output(net_device* output_dev, const uint8_t* dest_mac_addr, ipv6_addr dest_addr, my_buf* buffer, uint8_t next_hdr_num){
