@@ -42,10 +42,10 @@ struct ipv6_addr {
 #define IPV6_ADDRESS(A, B, C, D, E, F, G, H) ()
 
 struct ipv6_device{
-    ipv6_addr address;
-    uint32_t prefix_len; // 0~128
-    uint8_t scope;
-    net_device* net_dev;
+    ipv6_addr address; // IPv6アドレス
+    uint32_t prefix_len; // プレフィックス長(0~128)
+    uint8_t scope; // スコープ
+    net_device* net_dev; // ネットワークデバイスへのポインタ
 };
 
 struct ipv6_header {
